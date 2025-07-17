@@ -1,0 +1,14 @@
+import Link from "next/link";
+import Particles from "@tsparticles/react";
+
+export default function Home() {
+=======
+"use client"
+import Link from "next/link";
+import Particles from "@tsparticles/react";
+
+const particlesInit = async (main) => {
+  // you can initialize the tsParticles instance (main) here, adding custom shapes or presets if needed
+};
+
+export default function Home() {
