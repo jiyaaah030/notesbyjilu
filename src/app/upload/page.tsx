@@ -19,9 +19,14 @@ export default function UploadPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
-  
+
   if (!file) {
     alert("Please select a file to upload.");
+    return;
+  }
+
+  if (!user) {
+    alert("Please login to upload notes.");
     return;
   }
 
@@ -31,9 +36,10 @@ export default function UploadPage() {
   formData.append("subject", subject);
   formData.append("title", title);
   formData.append("file", file);
+  formData.append("uploader", user.uid);
 
   try {
-    const res = await fetch("http://localhost:4000/upload", {
+    const res = await fetch("http://localhost:3001/upload", {
       method: "POST",
       body: formData,
     });

@@ -10,7 +10,7 @@ const quicksand = Quicksand({
 
 export const metadata = {
   title: "NotesbyJilu | A note-sharing app",
-  description: "A cute place to share & find college notes. Sharing is caring!",
+  description: "A place to share & find college notes. Sharing is caring!",
 };
 
 

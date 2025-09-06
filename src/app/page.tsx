@@ -1,17 +1,90 @@
 "use client"
 import Link from "next/link";
+import { useState } from "react";
+import { searchUsers } from "@/lib/api";
 
 export default function Home() {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return;
+
+    setIsSearching(true);
+    try {
+      const results = await searchUsers(searchQuery);
+      setSearchResults(results);
+    } catch (error) {
+      console.error("Search failed:", error);
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      handleSearch();
+    }
+  };
+
   return (
     <>
     <main className="relative flex flex-col items-center px-4 mt-16 space-y-12 text-center overflow-hidden">
+      {/* Search Bar */}
+      <div className="w-full max-w-md space-y-4">
+        <div className="flex gap-2">
+          <input
+            type="text"
+            placeholder="Search users..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyPress={handleKeyPress}
+            className="flex-1 px-4 py-2 border-2 border-[var(--color-primary)] rounded-full bg-[var(--color-background)] text-[var(--color-primary)] placeholder-[var(--color-secondary)] focus:outline-none focus:border-[var(--color-secondary)]"
+          />
+          <button
+            onClick={handleSearch}
+            disabled={isSearching}
+            className="px-6 py-2 bg-[var(--color-primary)] text-[var(--color-background)] rounded-full hover:bg-[var(--color-secondary)] transition font-semibold disabled:opacity-50"
+          >
+            {isSearching ? "..." : "Search"}
+          </button>
+        </div>
+      </div>
+
+      {/* Search Results */}
+      {searchResults.length > 0 && (
+        <div className="w-full max-w-2xl space-y-4">
+          <h2 className="text-2xl font-bold text-[var(--color-primary)]">Search Results</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {searchResults.map((user) => (
+              <Link
+                key={user.firebaseUid}
+                href={`/profile/${user.firebaseUid}`}
+                className="bg-[var(--color-background)] border-2 border-[var(--color-primary)] rounded-2xl p-4 shadow hover:shadow-lg transition flex items-center space-x-4"
+              >
+                <img
+                  src={user.profilePicUrl || "/default-profile.png"}
+                  alt={user.username}
+                  className="w-12 h-12 rounded-full object-cover"
+                />
+                <div>
+                  <p className="font-semibold text-[var(--color-primary)]">{user.username}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Hero */}
       <div className="space-y-4">
         <h1 className="text-4xl md:text-5xl font-extrabold text-[var(--color-primary)]">
           Welcome to NotesbyJilu 📝
         </h1>
         <p className="text-xl md:text-2xl italic text-[var(--color-secondary)]">
-          “Sharing is caring”
+          "Sharing is caring"
         </p>
       </div>
 
@@ -42,7 +115,7 @@ export default function Home() {
     <div className="text-6xl">🎯</div>
     <h3 className="text-2xl font-bold text-[var(--color-primary)]">Practice with Flashcards</h3>
     <p className="text-[var(--color-primary)]">Revise key concepts by flipping through flashcards!</p>
-    <Link href="/flashcards" className="mt-4 inline-block bg-[var(--color-primary)] text-[var(--color-background)] px-6 py-3 rounded-full hover:bg-[var(--color-secondary)] transition font-semibold">
+    <Link href="/flashcard" className="mt-4 inline-block bg-[var(--color-primary)] text-[var(--color-background)] px-6 py-3 rounded-full hover:bg-[var(--color-secondary)] transition font-semibold">
       Go to Flashcards
     </Link>
   </div>

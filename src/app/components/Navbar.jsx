@@ -29,7 +29,6 @@ export default function Navbar() {
         {/* Logo */}
         <Link href="/" className="font-extrabold text-2xl hover:text-[var(--color-secondary)] flex items-center space-x-1">
           <span>NotesbyJilu</span>
-          <span className="text-xl">📝</span>
         </Link>
 
         {/* Right links */}
