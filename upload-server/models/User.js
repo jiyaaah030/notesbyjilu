@@ -6,7 +6,7 @@ const UserSchema = new mongoose.Schema({
   college: { type: String, default: "" },
   profession: { type: String, default: "" },
   bio: { type: String, default: "" },
-  profilePicUrl: { type: String, default: "/profilepic.jpeg" },
+  profilePicUrl: { type: String, default: "/default-profile.png" },
   followers: [{ type: String }], // store other users' firebaseUid
   following: [{ type: String }],
 }, { timestamps: true });

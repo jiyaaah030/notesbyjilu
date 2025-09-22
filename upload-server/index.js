@@ -1,11 +1,19 @@
-require('dotenv').config();
+const path = require("path");
+
+require('dotenv').config({ path: path.resolve(__dirname, '.env') });
+
+console.log("Loaded GOOGLE_API_KEY:", process.env.GOOGLE_API_KEY);
+
+// Set Google Cloud credentials for Vertex AI
+process.env.GOOGLE_APPLICATION_CREDENTIALS = path.join(__dirname, 'firebase-service-account.json');
 
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
 const mongoose = require('mongoose');
 const Note = require('./models/Note');
-const path = require("path");
+const User = require('./models/User');
+const { verifyFirebaseToken } = require("./middleware/auth");
 
 const app = express();
 
@@ -37,10 +45,7 @@ const connectDB = async () => {
 
     console.log('Attempting to connect to MongoDB...');
     
-    await mongoose.connect(mongoURI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
+    await mongoose.connect(mongoURI);
     
     console.log("✅ MongoDB connected successfully");
   } catch (err) {
@@ -64,17 +69,19 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-app.post('/upload', upload.single('file'), async (req, res) => {
+app.post('/upload', verifyFirebaseToken, upload.single('file'), async (req, res) => {
   try {
-    const { title, uploader, year, semester, subject } = req.body;
+    const { title, year, semester, subject } = req.body;
     if (!req.file) {
       return res.status(400).json({ message: "No file uploaded" });
     }
+    const user = await User.findOne({ firebaseUid: req.user.uid });
+    const uploader = user ? user.username : (req.user.displayName || req.user.email || req.user.uid);
     const newNote = new Note({
       title,
       filename: req.file.filename,
       uploader,
-      uploaderUid: uploader,
+      uploaderUid: req.user.uid,
       year,
       semester,
       subject,

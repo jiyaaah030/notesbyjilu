@@ -30,17 +30,23 @@ export default function UploadPage() {
     return;
   }
 
-  const formData = new FormData();
-  formData.append("year", year);
-  formData.append("semester", semester);
-  formData.append("subject", subject);
-  formData.append("title", title);
-  formData.append("file", file);
-  formData.append("uploader", user.uid);
-
   try {
+    // Get Firebase ID token
+    const idToken = await user.getIdToken();
+
+    const formData = new FormData();
+    formData.append("year", year);
+    formData.append("semester", semester);
+    formData.append("subject", subject);
+    formData.append("title", title);
+    formData.append("file", file);
+    formData.append("uploader", user.uid);
+
     const res = await fetch("http://localhost:3001/upload", {
       method: "POST",
+      headers: {
+        'Authorization': `Bearer ${idToken}`
+      },
       body: formData,
     });
 

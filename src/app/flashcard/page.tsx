@@ -88,9 +88,7 @@ export default function FlashcardPage() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          noteId: selectedNote._id,
-          content: noteContent.content,
-          title: selectedNote.title,
+          noteContent: noteContent.content,
         }),
       });
 

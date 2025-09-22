@@ -1,17 +1,28 @@
-# User Search Implementation TODO
+# Upload Authentication Fix
 
-## Backend
-- [x] Add search endpoint in upload-server/routes/userRoutes.js (GET /users/search?query=username)
+## ✅ Completed
 
-## Frontend API
-- [x] Add searchUsers function in src/lib/api.ts
+- **Fixed "Missing token" error in upload functionality**
+  - Added Firebase ID token retrieval in frontend upload request
+  - Added Authorization header with Bearer token format
+  - Backend authentication middleware now receives required token
 
-## Frontend UI
-- [x] Add search bar to src/app/page.tsx (input field and search button above cards)
-- [x] Implement search results display (user profiles with pics, usernames, profile links)
-- [x] Handle no results case
+## 🔧 Changes Made
 
-## Testing
-- [x] Test search with existing users
-- [x] Test edge cases (no results, partial matches)
-- [x] Test navigation to user profiles from search results
+- **File**: `src/app/upload/page.tsx`
+  - Added `const idToken = await user.getIdToken();` before form submission
+  - Added `Authorization: Bearer ${idToken}` header to fetch request
+  - This allows the backend `verifyFirebaseToken` middleware to authenticate the user
+
+## 🧪 Testing Required
+
+- [ ] Test upload functionality with authenticated user
+- [ ] Verify token is properly sent in Authorization header
+- [ ] Confirm backend successfully verifies token and processes upload
+- [ ] Test error handling for invalid/expired tokens
+
+## 📝 Next Steps
+
+- Monitor upload functionality in production
+- Consider adding token refresh logic if needed
+- Add proper error handling for token-related failures

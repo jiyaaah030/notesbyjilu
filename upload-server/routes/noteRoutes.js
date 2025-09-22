@@ -25,6 +25,11 @@ router.post("/:id/like", verifyFirebaseToken, async (req, res) => {
     console.log("Like request for note ID:", req.params.id);
     console.log("User UID:", req.user.uid);
 
+    if (!req.user || !req.user.uid || typeof req.user.uid !== 'string') {
+      console.error("Invalid user UID:", req.user);
+      return res.status(400).json({ error: "Invalid user" });
+    }
+
     const note = await Note.findById(req.params.id);
     if (!note) {
       console.log("Note not found:", req.params.id);
@@ -33,75 +38,157 @@ router.post("/:id/like", verifyFirebaseToken, async (req, res) => {
 
     console.log("Note found:", note.title);
 
-    // Ensure arrays exist
-    if (!note.likedBy) note.likedBy = [];
-    if (!note.dislikedBy) note.dislikedBy = [];
+    // Ensure arrays exist and are arrays
+    if (!Array.isArray(note.likedBy)) {
+      console.log("likedBy is not an array, initializing:", note.likedBy);
+      note.likedBy = [];
+    }
+    if (!Array.isArray(note.dislikedBy)) {
+      console.log("dislikedBy is not an array, initializing:", note.dislikedBy);
+      note.dislikedBy = [];
+    }
+
+    // Ensure likes and dislikes are numbers
+    if (typeof note.likes !== 'number') {
+      console.log("likes is not a number, setting to 0:", note.likes);
+      note.likes = 0;
+    }
+    if (typeof note.dislikes !== 'number') {
+      console.log("dislikes is not a number, setting to 0:", note.dislikes);
+      note.dislikes = 0;
+    }
 
     console.log("Current likes:", note.likes, "dislikes:", note.dislikes);
     console.log("Liked by:", note.likedBy.length, "users");
     console.log("Disliked by:", note.dislikedBy.length, "users");
 
+    let updateQuery = {};
+    let likesChange = 0;
+    let dislikesChange = 0;
+
     // Check if user has already disliked this note
     if (note.dislikedBy.includes(req.user.uid)) {
       // Remove dislike and add like
-      note.dislikes = Math.max(0, note.dislikes - 1);
-      note.dislikedBy = note.dislikedBy.filter(uid => uid !== req.user.uid);
-      note.likes += 1;
-      note.likedBy.push(req.user.uid);
+      dislikesChange = -1;
+      likesChange = 1;
+      updateQuery = {
+        $inc: { dislikes: dislikesChange, likes: likesChange },
+        $pull: { dislikedBy: req.user.uid },
+        $push: { likedBy: req.user.uid }
+      };
       console.log("Switched from dislike to like");
     } else if (note.likedBy.includes(req.user.uid)) {
       // User already liked, remove like
-      note.likes = Math.max(0, note.likes - 1);
-      note.likedBy = note.likedBy.filter(uid => uid !== req.user.uid);
+      likesChange = -1;
+      updateQuery = {
+        $inc: { likes: likesChange },
+        $pull: { likedBy: req.user.uid }
+      };
       console.log("Removed like");
     } else {
       // New like
-      note.likes += 1;
-      note.likedBy.push(req.user.uid);
+      likesChange = 1;
+      updateQuery = {
+        $inc: { likes: likesChange },
+        $push: { likedBy: req.user.uid }
+      };
       console.log("Added new like");
     }
 
-    await note.save();
-    console.log("Final likes:", note.likes, "dislikes:", note.dislikes);
-    res.json({ likes: note.likes, dislikes: note.dislikes });
+    await Note.updateOne({ _id: req.params.id }, updateQuery);
+
+    const updatedNote = await Note.findById(req.params.id);
+    console.log("Final likes:", updatedNote.likes, "dislikes:", updatedNote.dislikes);
+    res.json({ likes: updatedNote.likes, dislikes: updatedNote.dislikes });
   } catch (error) {
-    console.error("Error in like route:", error);
-    res.status(500).json({ error: "Internal server error" });
+    console.error("Error in like route:", error.message);
+    console.error("Stack:", error.stack);
+    res.status(500).json({ error: "Internal server error", details: error.message });
   }
 });
 
 // dislike a note (mutually exclusive with like)
 router.post("/:id/dislike", verifyFirebaseToken, async (req, res) => {
   try {
+    console.log("Dislike request for note ID:", req.params.id);
+    console.log("User UID:", req.user.uid);
+
+    if (!req.user || !req.user.uid || typeof req.user.uid !== 'string') {
+      console.error("Invalid user UID:", req.user);
+      return res.status(400).json({ error: "Invalid user" });
+    }
+
     const note = await Note.findById(req.params.id);
     if (!note) return res.status(404).json({ error: "Note not found" });
 
-    // Ensure arrays exist
-    if (!note.likedBy) note.likedBy = [];
-    if (!note.dislikedBy) note.dislikedBy = [];
+    console.log("Note found:", note.title);
+
+    // Ensure arrays exist and are arrays
+    if (!Array.isArray(note.likedBy)) {
+      console.log("likedBy is not an array, initializing:", note.likedBy);
+      note.likedBy = [];
+    }
+    if (!Array.isArray(note.dislikedBy)) {
+      console.log("dislikedBy is not an array, initializing:", note.dislikedBy);
+      note.dislikedBy = [];
+    }
+
+    // Ensure likes and dislikes are numbers
+    if (typeof note.likes !== 'number') {
+      console.log("likes is not a number, setting to 0:", note.likes);
+      note.likes = 0;
+    }
+    if (typeof note.dislikes !== 'number') {
+      console.log("dislikes is not a number, setting to 0:", note.dislikes);
+      note.dislikes = 0;
+    }
+
+    console.log("Current likes:", note.likes, "dislikes:", note.dislikes);
+    console.log("Liked by:", note.likedBy.length, "users");
+    console.log("Disliked by:", note.dislikedBy.length, "users");
+
+    let updateQuery = {};
+    let likesChange = 0;
+    let dislikesChange = 0;
 
     // Check if user has already liked this note
     if (note.likedBy.includes(req.user.uid)) {
       // Remove like and add dislike
-      note.likes = Math.max(0, note.likes - 1);
-      note.likedBy = note.likedBy.filter(uid => uid !== req.user.uid);
-      note.dislikes += 1;
-      note.dislikedBy.push(req.user.uid);
+      likesChange = -1;
+      dislikesChange = 1;
+      updateQuery = {
+        $inc: { likes: likesChange, dislikes: dislikesChange },
+        $pull: { likedBy: req.user.uid },
+        $push: { dislikedBy: req.user.uid }
+      };
+      console.log("Switched from like to dislike");
     } else if (note.dislikedBy.includes(req.user.uid)) {
       // User already disliked, remove dislike
-      note.dislikes = Math.max(0, note.dislikes - 1);
-      note.dislikedBy = note.dislikedBy.filter(uid => uid !== req.user.uid);
+      dislikesChange = -1;
+      updateQuery = {
+        $inc: { dislikes: dislikesChange },
+        $pull: { dislikedBy: req.user.uid }
+      };
+      console.log("Removed dislike");
     } else {
       // New dislike
-      note.dislikes += 1;
-      note.dislikedBy.push(req.user.uid);
+      dislikesChange = 1;
+      updateQuery = {
+        $inc: { dislikes: dislikesChange },
+        $push: { dislikedBy: req.user.uid }
+      };
+      console.log("Added new dislike");
     }
 
-    await note.save();
-    res.json({ likes: note.likes, dislikes: note.dislikes });
+    await Note.updateOne({ _id: req.params.id }, updateQuery);
+
+    const updatedNote = await Note.findById(req.params.id);
+    console.log("Final likes:", updatedNote.likes, "dislikes:", updatedNote.dislikes);
+    res.json({ likes: updatedNote.likes, dislikes: updatedNote.dislikes });
   } catch (error) {
-    console.error("Error in dislike route:", error);
-    res.status(500).json({ error: "Internal server error" });
+    console.error("Error in dislike route:", error.message);
+    console.error("Stack:", error.stack);
+    res.status(500).json({ error: "Internal server error", details: error.message });
   }
 });
 

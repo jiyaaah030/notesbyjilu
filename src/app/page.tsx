@@ -1,12 +1,20 @@
 "use client"
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { searchUsers } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+
+  const getProfilePicUrl = (profilePicUrl: string | null | undefined) => {
+    if (!profilePicUrl) return "/profilepic.jpeg";
+    if (profilePicUrl.startsWith("http")) return profilePicUrl;
+    return `http://localhost:3001${profilePicUrl}`;
+  };
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
@@ -65,7 +73,7 @@ export default function Home() {
                 className="bg-[var(--color-background)] border-2 border-[var(--color-primary)] rounded-2xl p-4 shadow hover:shadow-lg transition flex items-center space-x-4"
               >
                 <img
-                  src={user.profilePicUrl || "/default-profile.png"}
+                  src={getProfilePicUrl(user.profilePicUrl)}
                   alt={user.username}
                   className="w-12 h-12 rounded-full object-cover"
                 />

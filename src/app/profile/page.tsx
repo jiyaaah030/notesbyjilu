@@ -137,7 +137,7 @@ export default function ProfilePage() {
         <div className="absolute -bottom-16 left-8">
           <div className="relative">
             <img
-              src={me.profilePicUrl ? `http://localhost:3001${me.profilePicUrl}` : "/profilepic.jpeg"}
+              src={me.profilePicUrl ? `http://localhost:3001${me.profilePicUrl}` : "/default-profile.png"}
               alt="Profile"
               width={128}
               height={128}
@@ -145,7 +145,7 @@ export default function ProfilePage() {
               onError={(e) => {
                 // Fallback to a simple img tag if image fails
                 const target = e.target as HTMLImageElement;
-                target.src = "/profilepic.jpeg";
+                target.src = "/default-profile.png";
               }}
             />
             <label

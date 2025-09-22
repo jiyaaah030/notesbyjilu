@@ -113,6 +113,7 @@ export default function BrowsePage() {
             <div key={note._id} className="p-4 border rounded-lg shadow bg-white">
               <h2 className="text-lg font-bold">{note.title}</h2>
               <p className="text-sm text-gray-600">Uploaded by: {note.uploader || 'Unknown'}</p>
+              <p className="text-sm text-gray-600">Year: {note.year}, Semester: {note.semester}</p>
               <a
                 className="mt-2 inline-block text-blue-500 hover:underline"
                 href={`http://localhost:3001/uploads/${note.filename}`}

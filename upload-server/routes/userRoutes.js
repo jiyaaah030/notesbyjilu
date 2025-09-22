@@ -98,4 +98,84 @@ router.get("/:firebaseUid/notes", async (req, res) => {
   }
 });
 
+// follow a user
+router.post("/:firebaseUid/follow", verifyFirebaseToken, async (req, res) => {
+  try {
+    const targetUid = req.params.firebaseUid;
+    const currentUid = req.user.uid;
+
+    if (targetUid === currentUid) {
+      return res.status(400).json({ error: "Cannot follow yourself" });
+    }
+
+    const targetUser = await User.findOne({ firebaseUid: targetUid });
+    const currentUser = await User.findOne({ firebaseUid: currentUid });
+
+    if (!targetUser || !currentUser) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Check if already following
+    if (currentUser.following.includes(targetUid)) {
+      return res.status(400).json({ error: "Already following this user" });
+    }
+
+    // Add to following and followers
+    currentUser.following.push(targetUid);
+    targetUser.followers.push(currentUid);
+
+    await currentUser.save();
+    await targetUser.save();
+
+    res.json({ message: "Followed successfully" });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to follow user" });
+  }
+});
+
+// unfollow a user
+router.delete("/:firebaseUid/follow", verifyFirebaseToken, async (req, res) => {
+  try {
+    const targetUid = req.params.firebaseUid;
+    const currentUid = req.user.uid;
+
+    const targetUser = await User.findOne({ firebaseUid: targetUid });
+    const currentUser = await User.findOne({ firebaseUid: currentUid });
+
+    if (!targetUser || !currentUser) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Remove from following and followers
+    currentUser.following = currentUser.following.filter(uid => uid !== targetUid);
+    targetUser.followers = targetUser.followers.filter(uid => uid !== currentUid);
+
+    await currentUser.save();
+    await targetUser.save();
+
+    res.json({ message: "Unfollowed successfully" });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to unfollow user" });
+  }
+});
+
+// check follow status
+router.get("/:firebaseUid/follow-status", verifyFirebaseToken, async (req, res) => {
+  try {
+    const targetUid = req.params.firebaseUid;
+    const currentUid = req.user.uid;
+
+    const currentUser = await User.findOne({ firebaseUid: currentUid });
+
+    if (!currentUser) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const isFollowing = currentUser.following.includes(targetUid);
+    res.json({ isFollowing });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to check follow status" });
+  }
+});
+
 module.exports = router;

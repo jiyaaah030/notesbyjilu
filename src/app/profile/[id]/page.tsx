@@ -2,15 +2,18 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { authedFetch } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
 
 export default function UserProfile() {
   const params = useParams();
   const userId = params.id as string;
+  const { user: currentUser } = useAuth();
   const [user, setUser] = useState<any>(null);
   const [notes, setNotes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -39,6 +42,64 @@ export default function UserProfile() {
       fetchUserProfile();
     }
   }, [userId]);
+
+  useEffect(() => {
+    const fetchFollowStatus = async () => {
+      if (!currentUser || !userId || currentUser.uid === userId) return;
+
+      try {
+        const token = await currentUser.getIdToken();
+        const response = await fetch(`/api/users/${userId}?status=true`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setIsFollowing(data.isFollowing);
+        }
+      } catch (err) {
+        console.error("Failed to fetch follow status:", err);
+      }
+    };
+
+    fetchFollowStatus();
+  }, [currentUser, userId]);
+
+  const handleFollow = async () => {
+    if (!currentUser || followLoading) return;
+
+    setFollowLoading(true);
+    try {
+      const token = await currentUser.getIdToken();
+      const method = isFollowing ? 'DELETE' : 'POST';
+      const response = await fetch(`/api/users/${userId}`, {
+        method,
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        setIsFollowing(!isFollowing);
+        // Update counts
+        setUser((prev: any) => ({
+          ...prev,
+          followers: isFollowing
+            ? prev.followers.filter((uid: string) => uid !== currentUser.uid)
+            : [...prev.followers, currentUser.uid],
+        }));
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Failed to update follow status');
+      }
+    } catch (err) {
+      console.error("Follow action failed:", err);
+      alert("Failed to update follow status");
+    } finally {
+      setFollowLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -71,7 +132,7 @@ export default function UserProfile() {
             alt={user.username}
             className="w-24 h-24 rounded-full object-cover border-2 border-[var(--color-primary)]"
           />
-          <div>
+          <div className="flex-1">
             <h1 className="text-3xl font-bold text-[var(--color-primary)]">{user.username}</h1>
             <p className="text-[var(--color-secondary)]">{user.bio || "No bio available"}</p>
             <div className="flex space-x-4 mt-2 text-sm text-[var(--color-primary)]">
@@ -79,6 +140,19 @@ export default function UserProfile() {
               <span>{user.following?.length || 0} following</span>
             </div>
           </div>
+          {currentUser && currentUser.uid !== userId && (
+            <button
+              onClick={handleFollow}
+              disabled={followLoading}
+              className={`px-6 py-2 rounded-full font-medium transition-colors ${
+                isFollowing
+                  ? 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+                  : 'bg-[var(--color-primary)] text-white hover:bg-[var(--color-secondary)]'
+              } ${followLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              {followLoading ? 'Loading...' : isFollowing ? 'Unfollow' : 'Follow'}
+            </button>
+          )}
         </div>
       </div>
 
