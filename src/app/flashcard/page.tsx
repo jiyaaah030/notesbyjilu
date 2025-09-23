@@ -18,6 +18,12 @@ interface Flashcard {
   answer: string;
 }
 
+interface QAAssistant {
+  question: string;
+  answer: string;
+  timestamp: Date;
+}
+
 export default function FlashcardPage() {
   const { user } = useAuth();
   const router = useRouter();
@@ -28,6 +34,10 @@ export default function FlashcardPage() {
   const [generating, setGenerating] = useState(false);
   const [flippedCards, setFlippedCards] = useState<Set<number>>(new Set());
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
+  const [qaHistory, setQaHistory] = useState<QAAssistant[]>([]);
+  const [currentQuestion, setCurrentQuestion] = useState("");
+  const [asking, setAsking] = useState(false);
+  const [showQA, setShowQA] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -127,6 +137,47 @@ export default function FlashcardPage() {
   const prevCard = () => {
     if (currentCardIndex > 0) {
       setCurrentCardIndex(currentCardIndex - 1);
+    }
+  };
+
+  const askQuestion = async () => {
+    if (!selectedNote || !currentQuestion.trim()) return;
+
+    try {
+      setAsking(true);
+      const token = await user!.getIdToken();
+
+      const response = await fetch("http://localhost:3001/api/flashcards/ask", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          noteId: selectedNote._id,
+          question: currentQuestion.trim(),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to get answer");
+      }
+
+      const data = await response.json();
+      const newQA: QAAssistant = {
+        question: currentQuestion,
+        answer: data.answer,
+        timestamp: new Date(),
+      };
+
+      setQaHistory(prev => [newQA, ...prev]);
+      setCurrentQuestion("");
+      setShowQA(true);
+    } catch (error) {
+      console.error("Error asking question:", error);
+      alert("Failed to get answer. Please try again.");
+    } finally {
+      setAsking(false);
     }
   };
 
@@ -339,6 +390,100 @@ export default function FlashcardPage() {
             )}
           </div>
         </div>
+
+        {/* Q&A Section */}
+        {selectedNote && flashcards.length > 0 && (
+          <div className="mt-8">
+            <div className="bg-white rounded-2xl shadow-lg p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold text-gray-900">
+                  AI Q&A Assistant
+                </h2>
+                <button
+                  onClick={() => setShowQA(!showQA)}
+                  className="text-sm text-[var(--color-primary)] hover:text-[var(--color-secondary)] transition-colors"
+                >
+                  {showQA ? "Hide Q&A" : "Show Q&A"}
+                </button>
+              </div>
+
+              {showQA && (
+                <div className="space-y-6">
+                  {/* Question Input */}
+                  <div className="space-y-3">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Ask a question about "{selectedNote.title}"
+                    </label>
+                    <div className="flex gap-3">
+                      <textarea
+                        value={currentQuestion}
+                        onChange={(e) => setCurrentQuestion(e.target.value)}
+                        placeholder="Type your question here..."
+                        rows={3}
+                        className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent resize-none"
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            askQuestion();
+                          }
+                        }}
+                      />
+                      <button
+                        onClick={askQuestion}
+                        disabled={asking || !currentQuestion.trim()}
+                        className="px-6 py-3 bg-[var(--color-primary)] text-white rounded-lg hover:opacity-90 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed self-end"
+                      >
+                        {asking ? (
+                          <div className="flex items-center">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                            <span className="text-sm">Asking...</span>
+                          </div>
+                        ) : (
+                          <span className="text-sm">Ask AI</span>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Answer Display */}
+                  {qaHistory.length > 0 && (
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-medium text-gray-900">Latest Answer</h3>
+                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                        <div className="flex items-start space-x-4">
+                          <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center text-white font-medium flex-shrink-0">
+                            AI
+                          </div>
+                          <div className="flex-1">
+                            <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                              <p className="text-gray-800 leading-relaxed whitespace-pre-wrap">
+                                {qaHistory[0].answer}
+                              </p>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-2">
+                              Answered at {qaHistory[0].timestamp.toLocaleString()}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {qaHistory.length === 0 && (
+                    <div className="text-center py-8 text-gray-500">
+                      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                        </svg>
+                      </div>
+                      <p className="text-sm">Ask a question to get AI-powered answers about your notes!</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

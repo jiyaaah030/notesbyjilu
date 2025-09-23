@@ -195,9 +195,13 @@ export default function EditProfilePage() {
             <div className="flex items-center space-x-6">
               <div className="relative w-32 h-32">
                 <img
-                  src={avatarPreview || "/default-profile.png"}
+                  src={avatarPreview ? `http://localhost:3001${avatarPreview}` : "/default-profile.png"}
                   alt="Avatar Preview"
                   className="rounded-full border-4 border-white shadow-lg object-cover w-32 h-32"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src = "/default-profile.png";
+                  }}
                 />
                 <label
                   htmlFor="avatar-upload"

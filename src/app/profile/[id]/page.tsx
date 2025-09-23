@@ -73,7 +73,7 @@ export default function UserProfile() {
     try {
       const token = await currentUser.getIdToken();
       const method = isFollowing ? 'DELETE' : 'POST';
-      const response = await fetch(`/api/users/${userId}`, {
+      const response = await fetch(`/api/users/${userId}/follow`, {
         method,
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -128,13 +128,23 @@ export default function UserProfile() {
       <div className="bg-[var(--color-background)] border-b-2 border-[var(--color-primary)] py-8 px-4">
         <div className="max-w-4xl mx-auto flex items-center space-x-6">
           <img
-            src={user.profilePicUrl || "/default-profile.png"}
+            src={user.profilePicUrl ? `http://localhost:3001${user.profilePicUrl}` : "/default-profile.png"}
             alt={user.username}
             className="w-24 h-24 rounded-full object-cover border-2 border-[var(--color-primary)]"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.src = "/default-profile.png";
+            }}
           />
           <div className="flex-1">
             <h1 className="text-3xl font-bold text-[var(--color-primary)]">{user.username}</h1>
-            <p className="text-[var(--color-secondary)]">{user.bio || "No bio available"}</p>
+            {user.profession && (
+              <p className="text-lg text-[var(--color-secondary)] font-medium">{user.profession}</p>
+            )}
+            {user.college && (
+              <p className="text-[var(--color-secondary)]">{user.college}</p>
+            )}
+            <p className="text-[var(--color-secondary)] mt-2">{user.bio || "No bio available"}</p>
             <div className="flex space-x-4 mt-2 text-sm text-[var(--color-primary)]">
               <span>{user.followers?.length || 0} followers</span>
               <span>{user.following?.length || 0} following</span>
@@ -173,12 +183,12 @@ export default function UserProfile() {
                   {note.subject} - {note.semester} {note.year}
                 </p>
                 <a
-                  href={note.fileUrl}
+                  href={`http://localhost:3001/uploads/${note.filename}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-block bg-[var(--color-primary)] text-[var(--color-background)] px-4 py-2 rounded-full text-sm hover:bg-[var(--color-secondary)] transition"
                 >
-                  Download
+                  View Notes
                 </a>
               </div>
             ))}

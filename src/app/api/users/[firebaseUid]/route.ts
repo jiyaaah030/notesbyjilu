@@ -42,7 +42,7 @@ export async function GET(
       const data = await response.json();
       return NextResponse.json(data);
     } else {
-      // Get user profile
+      // Get user profile with follow counts
       const backendUrl = `http://localhost:3001/api/users/${firebaseUid}`;
       const response = await fetch(backendUrl);
 

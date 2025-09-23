@@ -9,6 +9,8 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const { user } = useAuth();
+  const router = useRouter();
 
   const getProfilePicUrl = (profilePicUrl: string | null | undefined) => {
     if (!profilePicUrl) return "/profilepic.jpeg";
@@ -34,6 +36,17 @@ export default function Home() {
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       handleSearch();
+    }
+  };
+
+  const handleUserClick = (selectedUser: any) => {
+    // Check if the selected user is the current user
+    if (user && selectedUser.firebaseUid === user.uid) {
+      // Navigate to own profile
+      router.push("/profile");
+    } else {
+      // Navigate to public profile
+      router.push(`/profile/${selectedUser.firebaseUid}`);
     }
   };
 
@@ -67,20 +80,23 @@ export default function Home() {
           <h2 className="text-2xl font-bold text-[var(--color-primary)]">Search Results</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {searchResults.map((user) => (
-              <Link
+              <button
                 key={user.firebaseUid}
-                href={`/profile/${user.firebaseUid}`}
-                className="bg-[var(--color-background)] border-2 border-[var(--color-primary)] rounded-2xl p-4 shadow hover:shadow-lg transition flex items-center space-x-4"
+                onClick={() => handleUserClick(user)}
+                className="bg-[var(--color-background)] border-2 border-[var(--color-primary)] rounded-2xl p-4 shadow hover:shadow-lg transition flex items-center space-x-4 text-left w-full"
               >
                 <img
                   src={getProfilePicUrl(user.profilePicUrl)}
                   alt={user.username}
                   className="w-12 h-12 rounded-full object-cover"
                 />
-                <div>
+                <div className="flex-1">
                   <p className="font-semibold text-[var(--color-primary)]">{user.username}</p>
+                  {user.firebaseUid === user?.uid && (
+                    <p className="text-xs text-[var(--color-secondary)] font-medium">(Your profile)</p>
+                  )}
                 </div>
-              </Link>
+              </button>
             ))}
           </div>
         </div>

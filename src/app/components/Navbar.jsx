@@ -19,7 +19,7 @@ export default function Navbar() {
   return (
     <nav className="bg-[var(--color-background)] text-[var(--color-primary)] shadow-md py-4 flex justify-center px-4">
       <div className="flex flex-wrap justify-center items-center gap-x-8 gap-y-3 text-lg">
-        
+
         {/* Left links */}
         <div className="flex gap-x-6">
           <Link href="/browse" className="hover:text-[var(--color-secondary)] transition-colors">Browse</Link>
@@ -42,11 +42,6 @@ export default function Navbar() {
             <>
               <Link href="/profile" className="hover:text-[var(--color-secondary)] transition-colors">Profile</Link>
               <button
-                // onClick={() => { 
-                //   import("firebase/auth").then(({ getAuth, signOut }) => {
-                //     signOut(getAuth());
-                //   });
-                // }}
                 onClick={handleLogout}
                 className="hover:text-[var(--color-secondary)] transition-colors font-semibold"
               >
