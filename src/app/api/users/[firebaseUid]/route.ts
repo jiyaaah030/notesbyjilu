@@ -1,57 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuth } from 'firebase-admin/auth';
-import { initializeApp, getApps, cert } from 'firebase-admin/app';
-
-if (!getApps().length) {
-  initializeApp({
-    credential: cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY || '{}')),
-  });
-}
+import { verifyAuth } from '@/lib/auth';
+import { User, Note } from '@/lib/models';
+import connectDB from '@/lib/mongodb';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { firebaseUid: string } }
 ) {
   try {
+    await connectDB();
     const firebaseUid = params.firebaseUid;
     const url = new URL(request.url);
     const status = url.searchParams.get('status');
 
     if (status === 'true') {
       // Get follow status
-      const authHeader = request.headers.get('authorization');
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      const decodedToken = await verifyAuth(request);
+      const currentUser = await User.findOne({ firebaseUid: decodedToken.uid });
+
+      if (!currentUser) {
+        return NextResponse.json({ error: "User not found" }, { status: 404 });
       }
 
-      const token = authHeader.split(' ')[1];
-      const decodedToken = await getAuth().verifyIdToken(token);
-      const currentUid = decodedToken.uid;
-
-      const backendUrl = `http://localhost:3001/api/users/${firebaseUid}/follow-status`;
-      const response = await fetch(backendUrl, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Backend error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      return NextResponse.json(data);
+      const isFollowing = currentUser.following.includes(firebaseUid);
+      return NextResponse.json({ isFollowing });
     } else {
       // Get user profile with follow counts
-      const backendUrl = `http://localhost:3001/api/users/${firebaseUid}`;
-      const response = await fetch(backendUrl);
-
-      if (!response.ok) {
-        throw new Error(`Backend error: ${response.status}`);
+      const user = await User.findOne({ firebaseUid });
+      if (!user) {
+        return NextResponse.json({ error: "User not found" }, { status: 404 });
       }
 
-      const data = await response.json();
-      return NextResponse.json(data);
+      const sharedNotes = await Note.countDocuments({ uploaderUid: firebaseUid });
+      const userWithCounts = {
+        ...user.toObject(),
+        counts: {
+          sharedNotes,
+          followers: user.followers?.length || 0,
+          following: user.following?.length || 0
+        }
+      };
+
+      return NextResponse.json(userWithCounts);
     }
   } catch (error) {
     console.error('User API error:', error);
@@ -64,27 +54,34 @@ export async function POST(
   { params }: { params: { firebaseUid: string } }
 ) {
   try {
+    await connectDB();
+    const decodedToken = await verifyAuth(request);
     const firebaseUid = params.firebaseUid;
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    if (firebaseUid === decodedToken.uid) {
+      return NextResponse.json({ error: "Cannot follow yourself" }, { status: 400 });
     }
 
-    const token = authHeader.split(' ')[1];
-    const backendUrl = `http://localhost:3001/api/users/${firebaseUid}/follow`;
-    const response = await fetch(backendUrl, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    });
+    const targetUser = await User.findOne({ firebaseUid });
+    const currentUser = await User.findOne({ firebaseUid: decodedToken.uid });
 
-    if (!response.ok) {
-      throw new Error(`Backend error: ${response.status}`);
+    if (!targetUser || !currentUser) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const data = await response.json();
-    return NextResponse.json(data);
+    // Check if already following
+    if (currentUser.following.includes(firebaseUid)) {
+      return NextResponse.json({ error: "Already following this user" }, { status: 400 });
+    }
+
+    // Add to following and followers
+    currentUser.following.push(firebaseUid);
+    targetUser.followers.push(decodedToken.uid);
+
+    await currentUser.save();
+    await targetUser.save();
+
+    return NextResponse.json({ message: "Followed successfully" });
   } catch (error) {
     console.error('Follow API error:', error);
     return NextResponse.json({ error: 'Failed to follow user' }, { status: 500 });
@@ -96,27 +93,25 @@ export async function DELETE(
   { params }: { params: { firebaseUid: string } }
 ) {
   try {
+    await connectDB();
+    const decodedToken = await verifyAuth(request);
     const firebaseUid = params.firebaseUid;
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const targetUser = await User.findOne({ firebaseUid });
+    const currentUser = await User.findOne({ firebaseUid: decodedToken.uid });
+
+    if (!targetUser || !currentUser) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const token = authHeader.split(' ')[1];
-    const backendUrl = `http://localhost:3001/api/users/${firebaseUid}/follow`;
-    const response = await fetch(backendUrl, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    });
+    // Remove from following and followers
+    currentUser.following = currentUser.following.filter((uid: string) => uid !== firebaseUid);
+    targetUser.followers = targetUser.followers.filter((uid: string) => uid !== decodedToken.uid);
 
-    if (!response.ok) {
-      throw new Error(`Backend error: ${response.status}`);
-    }
+    await currentUser.save();
+    await targetUser.save();
 
-    const data = await response.json();
-    return NextResponse.json(data);
+    return NextResponse.json({ message: "Unfollowed successfully" });
   } catch (error) {
     console.error('Unfollow API error:', error);
     return NextResponse.json({ error: 'Failed to unfollow user' }, { status: 500 });

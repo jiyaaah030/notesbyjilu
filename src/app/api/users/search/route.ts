@@ -1,25 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { User } from '@/lib/models';
+import connectDB from '@/lib/mongodb';
 
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const query = searchParams.get('query');
-
-  if (!query) {
-    return NextResponse.json({ error: 'Query parameter required' }, { status: 400 });
-  }
-
   try {
-    const backendUrl = `http://localhost:3001/api/users/search?query=${encodeURIComponent(query)}`;
-    const response = await fetch(backendUrl);
+    await connectDB();
 
-    if (!response.ok) {
-      throw new Error(`Backend error: ${response.status}`);
+    const { searchParams } = new URL(request.url);
+    const query = searchParams.get('query');
+
+    if (!query) {
+      return NextResponse.json({ error: "Query parameter required" }, { status: 400 });
     }
 
-    const data = await response.json();
-    return NextResponse.json(data);
+    const users = await User.find({
+      username: { $regex: query, $options: "i" }
+    }).select("username profilePicUrl firebaseUid").limit(10);
+
+    return NextResponse.json(users);
   } catch (error) {
-    console.error('Search API error:', error);
-    return NextResponse.json({ error: 'Search failed' }, { status: 500 });
+    return NextResponse.json({ error: "Search failed" }, { status: 500 });
   }
 }

@@ -1,36 +1,41 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+📚 NotesbyJilu
 
-## Getting Started
+NotesbyJilu is a collaborative note-sharing platform designed to make study materials more accessible and organized for students. It enables users to upload, browse, and engage with academic notes in a community-driven environment.
 
-First, run the development server:
+The project focuses on simplicity, scalability, and user experience, blending a modern frontend with a secure backend for file handling and data management.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+🚀 Key Features
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Secure Authentication – User login and signup powered by Firebase Authentication.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Notes Uploads – Upload and manage academic resources (PDF, DOCX, etc.).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Metadata Storage – Tracks uploader details, file information, and community interactions.
 
-## Learn More
+Community Engagement – Like/dislike system to highlight useful notes.
 
-To learn more about Next.js, take a look at the following resources:
+User Profiles – Customizable profile pages with editable information and profile pictures.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Responsive Design – Clean, aesthetic UI built with Next.js and a custom color palette.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Robust Backend – Node.js, Express, and Multer for efficient file handling.
 
-## Deploy on Vercel
+🛠️ Technology Stack
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Frontend: Next.js, React
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Backend: Node.js, Express.js, Multer
+
+Authentication: Firebase Authentication
+
+Database: MongoDB (in progress)
+
+Design: Custom responsive UI with consistent theming
+
+🎯 Vision
+
+NotesbyJilu aims to become a student-first knowledge hub, reducing barriers to quality resources and encouraging peer-to-peer learning. The platform is built with scalability in mind, allowing future enhancements like AI-powered note recommendations, study communities, and gamified engagement.
+
+📄 License
+
+Licensed under the MIT License. Free to use, adapt, and contribute.

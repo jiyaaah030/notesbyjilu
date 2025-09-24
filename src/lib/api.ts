@@ -11,7 +11,11 @@ export async function authedFetch(url: string, options: RequestInit = {}) {
       throw new Error("No authentication token available");
     }
 
-    const response = await fetch(url, {
+    // Use relative URLs for Next.js API routes in production, localhost for development
+    const baseUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3000';
+    const fullUrl = `${baseUrl}${url}`;
+
+    const response = await fetch(fullUrl, {
       ...options,
       headers: {
         ...(options.headers || {}),

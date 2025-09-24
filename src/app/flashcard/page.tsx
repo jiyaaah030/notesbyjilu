@@ -38,6 +38,7 @@ export default function FlashcardPage() {
   const [currentQuestion, setCurrentQuestion] = useState("");
   const [asking, setAsking] = useState(false);
   const [showQA, setShowQA] = useState(false);
+  const [showAllNotes, setShowAllNotes] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -45,14 +46,19 @@ export default function FlashcardPage() {
       return;
     }
     fetchNotes();
-  }, [user, router]);
+  }, [user, router, showAllNotes]);
 
   const fetchNotes = async () => {
     try {
       setLoading(true);
       const token = await user!.getIdToken();
 
-      const response = await fetch("http://localhost:3001/api/public/notes", {
+      const limit = showAllNotes ? undefined : 3;
+      const url = limit
+        ? `http://localhost:3001/api/public/notes?limit=${limit}`
+        : "http://localhost:3001/api/public/notes";
+
+      const response = await fetch(url, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -69,6 +75,12 @@ export default function FlashcardPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const toggleShowAllNotes = () => {
+    setShowAllNotes(!showAllNotes);
+    setSelectedNote(null);
+    setFlashcards([]);
   };
 
   const generateFlashcards = async () => {
@@ -257,6 +269,18 @@ export default function FlashcardPage() {
                   >
                     Upload Notes
                   </Link>
+                </div>
+              )}
+
+              {/* Show More/Show Less Button */}
+              {notes.length > 0 && (
+                <div className="mt-4 mb-4">
+                  <button
+                    onClick={toggleShowAllNotes}
+                    className="w-full text-sm text-[var(--color-primary)] hover:text-[var(--color-secondary)] transition-colors font-medium"
+                  >
+                    {showAllNotes ? "Show Less Notes" : "Show More Notes"}
+                  </button>
                 </div>
               )}
 
