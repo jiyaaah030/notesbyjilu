@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     }).select("username profilePicUrl firebaseUid").limit(10);
 
     return NextResponse.json(users);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Search failed" }, { status: 500 });
   }
 }

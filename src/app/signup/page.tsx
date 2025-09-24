@@ -16,15 +16,16 @@ export default function SignupPage() {
     try {
       await createUserWithEmailAndPassword(auth, email, password);
       router.push("/profile");
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Provide user-friendly error messages
-      if (err.code === 'auth/email-already-in-use') {
+      const error = err as { code?: string; message?: string };
+      if (error.code === 'auth/email-already-in-use') {
         setError("An account with this email already exists. Try logging in instead, or use a different email.");
-      } else if (err.code === 'auth/invalid-email') {
+      } else if (error.code === 'auth/invalid-email') {
         setError("Please enter a valid email address.");
-      } else if (err.code === 'auth/weak-password') {
+      } else if (error.code === 'auth/weak-password') {
         setError("Password is too weak. Please use at least 6 characters.");
-      } else if (err.code === 'auth/operation-not-allowed') {
+      } else if (error.code === 'auth/operation-not-allowed') {
         setError("Email/password signup is not enabled. Please contact support or use Google Sign-in.");
       } else {
         setError("Signup failed. Please check your information and try again.");
@@ -37,13 +38,14 @@ export default function SignupPage() {
     try {
       await signInWithPopup(auth, provider);
       router.push("/profile");
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Provide user-friendly error messages for Google sign-in
-      if (err.code === 'auth/popup-closed-by-user') {
+      const error = err as { code?: string; message?: string };
+      if (error.code === 'auth/popup-closed-by-user') {
         setError("Google sign-in was cancelled. Please try again.");
-      } else if (err.code === 'auth/popup-blocked') {
+      } else if (error.code === 'auth/popup-blocked') {
         setError("Pop-up was blocked by your browser. Please allow pop-ups and try again.");
-      } else if (err.code === 'auth/account-exists-with-different-credential') {
+      } else if (error.code === 'auth/account-exists-with-different-credential') {
         setError("An account already exists with this email using a different sign-in method.");
       } else {
         setError("Google sign-in failed. Please try again.");

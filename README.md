@@ -22,13 +22,15 @@ Robust Backend – Node.js, Express, and Multer for efficient file handling.
 
 🛠️ Technology Stack
 
-Frontend: Next.js, React
+Frontend: Next.js, React, Tailwind CSS
 
 Backend: Node.js, Express.js, Multer
 
 Authentication: Firebase Authentication
 
-Database: MongoDB (in progress)
+Database: MongoDB
+
+AI: Google Generative AI
 
 Design: Custom responsive UI with consistent theming
 

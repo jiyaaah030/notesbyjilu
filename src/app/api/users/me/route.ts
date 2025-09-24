@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     };
 
     return NextResponse.json(userWithCounts);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }
@@ -45,7 +45,7 @@ export async function PATCH(request: NextRequest) {
     );
 
     return NextResponse.json(user);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }

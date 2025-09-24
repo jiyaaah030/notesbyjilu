@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
 
     const notes = await query.sort({ year: -1, semester: -1, createdAt: -1 });
     return NextResponse.json(notes);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ message: 'Server error' }, { status: 500 });
   }
 }

@@ -5,29 +5,31 @@ import connectDB from '@/lib/mongodb';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
-    const note = await Note.findById(params.id);
+    const { id } = await params;
+    const note = await Note.findById(id);
     if (!note) {
       return NextResponse.json({ error: "Note not found" }, { status: 404 });
     }
     return NextResponse.json(note);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
     const decodedToken = await verifyAuth(request);
 
-    const note = await Note.findById(params.id);
+    const { id } = await params;
+    const note = await Note.findById(id);
     if (!note) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
@@ -38,20 +40,21 @@ export async function DELETE(
 
     await note.deleteOne();
     return NextResponse.json({ ok: true });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
     const decodedToken = await verifyAuth(request);
 
-    const note = await Note.findById(params.id);
+    const { id } = await params;
+    const note = await Note.findById(id);
     if (!note) {
       return NextResponse.json({ error: "Note not found" }, { status: 404 });
     }

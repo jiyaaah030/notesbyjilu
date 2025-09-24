@@ -5,11 +5,11 @@ import connectDB from '@/lib/mongodb';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { firebaseUid: string } }
+  { params }: { params: Promise<{ firebaseUid: string }> }
 ) {
   try {
     await connectDB();
-    const firebaseUid = params.firebaseUid;
+    const { firebaseUid } = await params;
     const url = new URL(request.url);
     const status = url.searchParams.get('status');
 
@@ -51,12 +51,12 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { firebaseUid: string } }
+  { params }: { params: Promise<{ firebaseUid: string }> }
 ) {
   try {
     await connectDB();
     const decodedToken = await verifyAuth(request);
-    const firebaseUid = params.firebaseUid;
+    const { firebaseUid } = await params;
 
     if (firebaseUid === decodedToken.uid) {
       return NextResponse.json({ error: "Cannot follow yourself" }, { status: 400 });
@@ -90,12 +90,12 @@ export async function POST(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { firebaseUid: string } }
+  { params }: { params: Promise<{ firebaseUid: string }> }
 ) {
   try {
     await connectDB();
     const decodedToken = await verifyAuth(request);
-    const firebaseUid = params.firebaseUid;
+    const { firebaseUid } = await params;
 
     const targetUser = await User.findOne({ firebaseUid });
     const currentUser = await User.findOne({ firebaseUid: decodedToken.uid });

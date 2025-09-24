@@ -5,7 +5,7 @@ import connectDB from '@/lib/mongodb';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
@@ -15,7 +15,8 @@ export async function POST(
       return NextResponse.json({ error: "Invalid user" }, { status: 400 });
     }
 
-    const note = await Note.findById(params.id);
+    const { id } = await params;
+    const note = await Note.findById(id);
     if (!note) {
       return NextResponse.json({ error: "Note not found" }, { status: 404 });
     }
@@ -66,9 +67,9 @@ export async function POST(
       };
     }
 
-    await Note.updateOne({ _id: params.id }, updateQuery);
+    await Note.updateOne({ _id: id }, updateQuery);
 
-    const updatedNote = await Note.findById(params.id);
+    const updatedNote = await Note.findById(id);
     return NextResponse.json({ likes: updatedNote.likes, dislikes: updatedNote.dislikes });
   } catch (error) {
     console.error("Error in dislike route:", error);
