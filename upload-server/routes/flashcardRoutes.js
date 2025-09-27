@@ -11,19 +11,31 @@ const pdfParse = require("pdf-parse");
 const mammoth = require("mammoth");
 
 /**
- * Extracts text content from a file based on its extension.
- * @param {string} filePath - The path to the file.
+ * Extracts text content from a file based on its URL or path.
+ * @param {string} fileSource - The URL or path to the file.
  * @returns {Promise<string>} The extracted text content.
  */
-async function extractTextFromFile(filePath) {
-  const ext = path.extname(filePath).toLowerCase();
+async function extractTextFromFile(fileSource) {
+  const ext = path.extname(fileSource).toLowerCase();
+
+  let dataBuffer;
+  if (fileSource.startsWith('http')) {
+    // It's a URL, fetch it
+    const response = await fetch(fileSource);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch file from URL: ${response.statusText}`);
+    }
+    dataBuffer = Buffer.from(await response.arrayBuffer());
+  } else {
+    // It's a local path
+    dataBuffer = fs.readFileSync(fileSource);
+  }
 
   if (ext === '.pdf') {
-    const dataBuffer = fs.readFileSync(filePath);
     const data = await pdfParse(dataBuffer);
     return data.text;
   } else if (ext === '.docx') {
-    const result = await mammoth.extractRawText({ path: filePath });
+    const result = await mammoth.extractRawText({ buffer: dataBuffer });
     return result.value;
   } else {
     throw new Error(`Unsupported file type: ${ext}`);
@@ -176,21 +188,19 @@ router.get("/note/:noteId/content", verifyFirebaseToken, async (req, res) => {
       return res.status(404).json({ error: "Note not found" });
     }
 
-    // Try to read the file content, but provide fallback for public notes
-    const filePath = path.join(__dirname, "..", "uploads", note.filename);
-
+    // Use the file URL to extract content
     let content;
-    if (fs.existsSync(filePath)) {
+    if (note.fileUrl) {
       try {
-        // Extract actual content from the file
-        content = await extractTextFromFile(filePath);
+        // Extract actual content from the file URL
+        content = await extractTextFromFile(note.fileUrl);
       } catch (extractionError) {
-        console.error("Error extracting text from file:", extractionError);
+        console.error("Error extracting text from file URL:", extractionError);
         // Fallback to generic content if extraction fails
         content = `This is sample content from "${note.title}". The file exists but text extraction failed. This note covers ${note.subject} topics for ${note.year} year, semester ${note.semester}.`;
       }
     } else {
-      // File doesn't exist (might be a public note), provide generic content
+      // No file URL, provide generic content
       content = `This is sample content from "${note.title}" uploaded by ${note.uploader || 'another user'}. This note covers ${note.subject} topics for ${note.year} year, semester ${note.semester}. The uploaded file is not available for text extraction.`;
     }
 
@@ -221,14 +231,12 @@ router.post("/ask", verifyFirebaseToken, async (req, res) => {
     }
 
     // Get note content
-    const filePath = path.join(__dirname, "..", "uploads", note.filename);
     let content;
-
-    if (fs.existsSync(filePath)) {
+    if (note.fileUrl) {
       try {
-        content = await extractTextFromFile(filePath);
+        content = await extractTextFromFile(note.fileUrl);
       } catch (extractionError) {
-        console.error("Error extracting text from file:", extractionError);
+        console.error("Error extracting text from file URL:", extractionError);
         content = `This is sample content from "${note.title}". The file exists but text extraction failed. This note covers ${note.subject} topics for ${note.year} year, semester ${note.semester}.`;
       }
     } else {
