@@ -1,9 +1,9 @@
 import mongoose from 'mongoose';
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/notesdb';
+const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://jiyabhati026_db_user:1zHJMPd6Rj2sPqHA@cluster0.acxheaa.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0';
 
-if (!MONGODB_URI) {
-  throw new Error('Please define the MONGODB_URI environment variable');
+if (!MONGO_URI) {
+  throw new Error('Please define the MONGO_URI environment variable');
 }
 
 interface MongooseCache {
@@ -34,7 +34,7 @@ async function connectDB(): Promise<typeof mongoose> {
       bufferCommands: false,
     };
 
-    cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
+    cached.promise = mongoose.connect(MONGO_URI, opts).then((mongoose) => {
       return mongoose;
     });
   }

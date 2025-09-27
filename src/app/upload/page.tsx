@@ -42,7 +42,7 @@ export default function UploadPage() {
     formData.append("file", file);
     formData.append("uploader", user.uid);
 
-    const res = await fetch(`${process.env.MONGODB_URI}/upload`, {
+    const res = await fetch(`${process.env.MONGO_URI}/upload`, {
       method: "POST",
       headers: {
         'Authorization': `Bearer ${idToken}`

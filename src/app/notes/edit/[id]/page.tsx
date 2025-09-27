@@ -30,7 +30,7 @@ export default function EditNotePage() {
       try {
         setLoading(true);
         const token = await user.getIdToken();
-        const response = await fetch(`${process.env.MONGODB_URI}/api/notes/${noteId}`, {
+        const response = await fetch(`${process.env.MONGO_URI}/api/notes/${noteId}`, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -77,7 +77,7 @@ export default function EditNotePage() {
       setSaving(true);
       const token = await user.getIdToken();
 
-      const response = await fetch(`${process.env.MONGODB_URI}/api/notes/${noteId}`, {
+      const response = await fetch(`${process.env.MONGO_URI}/api/notes/${noteId}`, {
         method: "PATCH",
         headers: {
           Authorization: `Bearer ${token}`,

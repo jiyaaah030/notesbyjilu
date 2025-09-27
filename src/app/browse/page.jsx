@@ -14,7 +14,7 @@ export default function BrowsePage() {
 
   useEffect(() => {
     axios
-      .get(`${process.env.MONGODB_URI}/api/public/notes`)
+      .get(`${process.env.MONGO_URI}/api/public/notes`)
       .then((res) => {
         setNotes(res.data);
         setFilteredNotes(res.data); // initially, show all
@@ -41,7 +41,7 @@ export default function BrowsePage() {
     try {
       const token = await user.getIdToken();
       const response = await axios.post(
-        `${process.env.MONGODB_URI}/api/notes/${noteId}/like`,
+        `${process.env.MONGO_URI}/api/notes/${noteId}/like`,
         {},
         {
           headers: {
@@ -69,7 +69,7 @@ export default function BrowsePage() {
     try {
       const token = await user.getIdToken();
       const response = await axios.post(
-        `${process.env.MONGODB_URI}/api/notes/${noteId}/dislike`,
+        `${process.env.MONGO_URI}/api/notes/${noteId}/dislike`,
         {},
         {
           headers: {
@@ -120,7 +120,7 @@ export default function BrowsePage() {
                 style={{ backgroundColor: '#190923', color: 'white' }}
                 onMouseOver={(e) => { e.target.style.backgroundColor = '#2a0f3a'; e.target.style.color = 'white'; }}
                 onMouseOut={(e) => { e.target.style.backgroundColor = '#190923'; e.target.style.color = 'white'; }}
-                href={`${process.env.MONGODB_URI}/uploads/${note.filename}`}
+                href={`${process.env.MONGO_URI}/uploads/${note.filename}`}
                 target="_blank"
                 rel="noopener noreferrer"
               >

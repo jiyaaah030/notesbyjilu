@@ -29,7 +29,7 @@ export default function Home() {
   const getProfilePicUrl = (profilePicUrl: string | null | undefined) => {
     if (!profilePicUrl) return "/profilepic.jpeg";
     if (profilePicUrl.startsWith("http")) return profilePicUrl;
-    return `${process.env.MONGODB_URI}${profilePicUrl}`;
+    return `${process.env.MONGO_URI}${profilePicUrl}`;
   };
 
   const handleSearch = async () => {
