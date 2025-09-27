@@ -2,14 +2,35 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 
+interface Note {
+  _id: string;
+  title: string;
+  filename: string;
+  uploader: string;
+  uploaderUid: string;
+  year: string;
+  semester: string;
+  subject: string;
+  fileUrl: string;
+  description: string;
+  likes: number;
+  dislikes: number;
+  likedBy: string[];
+  dislikedBy: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 export default function NoteDetail() {
   const { id } = useParams<{ id: string }>();
-  const [note, setNote] = useState<any>(null);
+  const [note, setNote] = useState<Note | null>(null);
 
   useEffect(() => {
     (async () => {
       const res = await fetch(`http://localhost:3001/api/notes/${id}`);
-      setNote(await res.json());
+      if (res.ok) {
+        setNote(await res.json() as Note);
+      }
     })();
   }, [id]);
 

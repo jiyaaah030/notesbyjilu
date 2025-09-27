@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
+import { FirebaseError } from "firebase/app";
 import { auth, provider } from "@/lib/firebase";
 
 export default function LoginPage() {
@@ -16,17 +17,18 @@ export default function LoginPage() {
     try {
       await signInWithEmailAndPassword(auth, email, password);
       router.push("/profile");
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Provide user-friendly error messages
-      if (err.code === 'auth/user-not-found') {
+      const error = err as FirebaseError;
+      if (error.code === 'auth/user-not-found') {
         setError("No account found with this email. Please check your email or create a new account.");
-      } else if (err.code === 'auth/wrong-password') {
+      } else if (error.code === 'auth/wrong-password') {
         setError("Incorrect password. Please try again or reset your password.");
-      } else if (err.code === 'auth/invalid-email') {
+      } else if (error.code === 'auth/invalid-email') {
         setError("Please enter a valid email address.");
-      } else if (err.code === 'auth/invalid-credential') {
+      } else if (error.code === 'auth/invalid-credential') {
         setError("This email is registered with Google Sign-in. Please use 'Continue with Google' instead, or create a new account through sign up.");
-      } else if (err.code === 'auth/too-many-requests') {
+      } else if (error.code === 'auth/too-many-requests') {
         setError("Too many failed login attempts. Please try again later.");
       } else {
         setError("Login failed. Please check your credentials and try again.");
@@ -39,13 +41,14 @@ export default function LoginPage() {
     try {
       await signInWithPopup(auth, provider);
       router.push("/profile");
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Provide user-friendly error messages for Google sign-in
-      if (err.code === 'auth/popup-closed-by-user') {
+      const error = err as FirebaseError;
+      if (error.code === 'auth/popup-closed-by-user') {
         setError("Google sign-in was cancelled. Please try again.");
-      } else if (err.code === 'auth/popup-blocked') {
+      } else if (error.code === 'auth/popup-blocked') {
         setError("Pop-up was blocked by your browser. Please allow pop-ups and try again.");
-      } else if (err.code === 'auth/account-exists-with-different-credential') {
+      } else if (error.code === 'auth/account-exists-with-different-credential') {
         setError("An account already exists with this email using a different sign-in method.");
       } else {
         setError("Google sign-in failed. Please try again.");

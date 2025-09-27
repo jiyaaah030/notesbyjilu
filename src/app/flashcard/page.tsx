@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
@@ -40,15 +40,7 @@ export default function FlashcardPage() {
   const [showQA, setShowQA] = useState(false);
   const [showAllNotes, setShowAllNotes] = useState(false);
 
-  useEffect(() => {
-    if (!user) {
-      router.push("/login");
-      return;
-    }
-    fetchNotes();
-  }, [user, router, showAllNotes]);
-
-  const fetchNotes = async () => {
+  const fetchNotes = useCallback(async () => {
     try {
       setLoading(true);
       const token = await user!.getIdToken();
@@ -75,7 +67,15 @@ export default function FlashcardPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, showAllNotes]);
+
+  useEffect(() => {
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+    fetchNotes();
+  }, [user, router, fetchNotes]);
 
   const toggleShowAllNotes = () => {
     setShowAllNotes(!showAllNotes);
@@ -436,7 +436,7 @@ export default function FlashcardPage() {
                   {/* Question Input */}
                   <div className="space-y-3">
                     <label className="block text-sm font-medium text-gray-700">
-                      Ask a question about "{selectedNote.title}"
+                      Ask a question about &ldquo;{selectedNote.title}&rdquo;
                     </label>
                     <div className="flex gap-3">
                       <textarea

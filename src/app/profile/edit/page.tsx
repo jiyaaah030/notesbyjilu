@@ -1,8 +1,28 @@
 "use client";
 import { useEffect, useState, useRef } from "react";
+import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+
+interface User {
+  _id: string;
+  firebaseUid: string;
+  username: string;
+  college: string;
+  profession: string;
+  bio: string;
+  profilePicUrl: string;
+  followers: string[];
+  following: string[];
+  counts?: {
+    followers: number;
+    following: number;
+    sharedNotes: number;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
 
 export default function EditProfilePage() {
   const { user } = useAuth();
@@ -37,7 +57,7 @@ export default function EditProfilePage() {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        const userData = await response.json();
+        const userData = await response.json() as User;
         setFormData({
           username: userData.username || "",
           profession: userData.profession || "",
@@ -91,7 +111,7 @@ export default function EditProfilePage() {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const updatedUser = await response.json();
+      const updatedUser = await response.json() as User;
       setAvatarPreview(updatedUser.profilePicUrl);
     } catch (error) {
       console.error("Error uploading avatar:", error);
@@ -116,7 +136,7 @@ export default function EditProfilePage() {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const updatedUser = await response.json();
+      const updatedUser = await response.json() as User;
       setAvatarPreview(updatedUser.profilePicUrl);
     } catch (error) {
       console.error("Error deleting avatar:", error);
@@ -194,14 +214,13 @@ export default function EditProfilePage() {
             {/* Avatar Upload */}
             <div className="flex items-center space-x-6">
               <div className="relative w-32 h-32">
-                <img
+                <Image
                   src={avatarPreview ? `http://localhost:3001${avatarPreview}` : "/default-profile.png"}
                   alt="Avatar Preview"
+                  width={128}
+                  height={128}
                   className="rounded-full border-4 border-white shadow-lg object-cover w-32 h-32"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.src = "/default-profile.png";
-                  }}
+                  unoptimized
                 />
                 <label
                   htmlFor="avatar-upload"

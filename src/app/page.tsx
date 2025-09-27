@@ -2,12 +2,26 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { searchUsers } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 
+interface DatabaseUser {
+  firebaseUid: string;
+  username: string;
+  college: string;
+  profession: string;
+  bio: string;
+  profilePicUrl: string;
+  followers: string[];
+  following: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<DatabaseUser[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const { user } = useAuth();
   const router = useRouter();
@@ -39,7 +53,7 @@ export default function Home() {
     }
   };
 
-  const handleUserClick = (selectedUser: any) => {
+  const handleUserClick = (selectedUser: DatabaseUser) => {
     // Check if the selected user is the current user
     if (user && selectedUser.firebaseUid === user.uid) {
       // Navigate to own profile
@@ -79,20 +93,22 @@ export default function Home() {
         <div className="w-full max-w-2xl space-y-4">
           <h2 className="text-2xl font-bold text-[var(--color-primary)]">Search Results</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {searchResults.map((user) => (
+            {searchResults.map((searchUser) => (
               <button
-                key={user.firebaseUid}
-                onClick={() => handleUserClick(user)}
+                key={searchUser.firebaseUid}
+                onClick={() => handleUserClick(searchUser)}
                 className="bg-[var(--color-background)] border-2 border-[var(--color-primary)] rounded-2xl p-4 shadow hover:shadow-lg transition flex items-center space-x-4 text-left w-full"
               >
-                <img
-                  src={getProfilePicUrl(user.profilePicUrl)}
-                  alt={user.username}
+                <Image
+                  src={getProfilePicUrl(searchUser.profilePicUrl)}
+                  alt={searchUser.username}
+                  width={48}
+                  height={48}
                   className="w-12 h-12 rounded-full object-cover"
                 />
                 <div className="flex-1">
-                  <p className="font-semibold text-[var(--color-primary)]">{user.username}</p>
-                  {user.firebaseUid === user?.uid && (
+                  <p className="font-semibold text-[var(--color-primary)]">{searchUser.username}</p>
+                  {searchUser.firebaseUid === user?.uid && (
                     <p className="text-xs text-[var(--color-secondary)] font-medium">(Your profile)</p>
                   )}
                 </div>
@@ -108,7 +124,7 @@ export default function Home() {
           Welcome to NotesbyJilu 📝
         </h1>
         <p className="text-xl md:text-2xl italic text-[var(--color-secondary)]">
-          "Sharing is caring"
+           &quot;Sharing is caring&quot;
         </p>
       </div>
 

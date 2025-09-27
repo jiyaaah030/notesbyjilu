@@ -5,11 +5,45 @@ import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 
+interface User {
+  _id: string;
+  firebaseUid: string;
+  username: string;
+  college: string;
+  profession: string;
+  bio: string;
+  profilePicUrl: string;
+  followers: string[];
+  following: string[];
+  counts: {
+    followers: number;
+    following: number;
+    sharedNotes: number;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface Note {
+  _id: string;
+  title: string;
+  filename: string;
+  subject: string;
+  semester: string;
+  year: string;
+  description: string;
+  uploaderUid: string;
+  likes: number;
+  dislikes: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export default function ProfilePage() {
   const { user } = useAuth();
   const router = useRouter();
-  const [me, setMe] = useState<any>(null);
-  const [notes, setNotes] = useState<any[]>([]);
+  const [me, setMe] = useState<User | null>(null);
+  const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'posts' | 'about'>('posts');
 
@@ -33,7 +67,7 @@ export default function ProfilePage() {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const updatedUser = await response.json();
+      const updatedUser = await response.json() as User;
       setMe(updatedUser);
     } catch (error) {
       console.error("Error uploading avatar:", error);
@@ -72,8 +106,8 @@ export default function ProfilePage() {
           throw new Error(`HTTP error! status: ${userResponse.status}`);
         }
 
-        const userData = await userResponse.json();
-        const notesData = await notesResponse.json();
+        const userData = await userResponse.json() as User;
+        const notesData = await notesResponse.json() as Note[];
 
         console.log("User data:", userData);
         console.log("Profile picture URL:", userData.profilePicUrl);
@@ -91,7 +125,7 @@ export default function ProfilePage() {
     fetchProfileData();
   }, [user, router]);
 
-  const handleEditNote = (note: any) => {
+  const handleEditNote = (note: Note) => {
     router.push(`/notes/edit/${note._id}`);
   };
 
@@ -136,17 +170,13 @@ export default function ProfilePage() {
         <div className="h-48 bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-secondary)]"></div>
         <div className="absolute -bottom-16 left-8">
           <div className="relative">
-            <img
+            <Image
               src={me.profilePicUrl ? `http://localhost:3001${me.profilePicUrl}` : "/default-profile.png"}
               alt="Profile"
               width={128}
               height={128}
               className="rounded-full border-4 border-white shadow-lg object-cover"
-              onError={(e) => {
-                // Fallback to a simple img tag if image fails
-                const target = e.target as HTMLImageElement;
-                target.src = "/default-profile.png";
-              }}
+              unoptimized={true}
             />
             <label
               htmlFor="profile-avatar-upload"

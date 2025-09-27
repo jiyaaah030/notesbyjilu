@@ -2,14 +2,43 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
+
+interface User {
+  _id: string;
+  firebaseUid: string;
+  username: string;
+  college: string;
+  profession: string;
+  bio: string;
+  profilePicUrl: string;
+  followers: string[];
+  following: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface Note {
+  _id: string;
+  title: string;
+  filename: string;
+  subject: string;
+  semester: string;
+  year: string;
+  description: string;
+  uploaderUid: string;
+  fileUrl: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export default function UserProfile() {
   const params = useParams();
   const userId = params.id as string;
   const { user: currentUser } = useAuth();
-  const [user, setUser] = useState<any>(null);
-  const [notes, setNotes] = useState<any[]>([]);
+  const [user, setUser] = useState<User | null>(null);
+  const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [isFollowing, setIsFollowing] = useState(false);
@@ -21,13 +50,13 @@ export default function UserProfile() {
         // Fetch user profile
         const userResponse = await fetch(`/api/users/${userId}`);
         if (!userResponse.ok) throw new Error("User not found");
-        const userData = await userResponse.json();
+        const userData = await userResponse.json() as User;
         setUser(userData);
 
         // Fetch user's notes
         const notesResponse = await fetch(`/api/users/${userId}/notes`);
         if (notesResponse.ok) {
-          const notesData = await notesResponse.json();
+          const notesData = await notesResponse.json() as Note[];
           setNotes(notesData);
         }
       } catch (err) {
@@ -55,7 +84,7 @@ export default function UserProfile() {
           },
         });
         if (response.ok) {
-          const data = await response.json();
+          const data = await response.json() as {isFollowing: boolean};
           setIsFollowing(data.isFollowing);
         }
       } catch (err) {
@@ -83,14 +112,17 @@ export default function UserProfile() {
       if (response.ok) {
         setIsFollowing(!isFollowing);
         // Update counts
-        setUser((prev: any) => ({
-          ...prev,
-          followers: isFollowing
-            ? prev.followers.filter((uid: string) => uid !== currentUser.uid)
-            : [...prev.followers, currentUser.uid],
-        }));
+        setUser((prev: User | null) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            followers: isFollowing
+              ? prev.followers.filter((uid: string) => uid !== currentUser.uid)
+              : [...prev.followers, currentUser.uid],
+          };
+        });
       } else {
-        const error = await response.json();
+        const error = await response.json() as {error: string};
         alert(error.error || 'Failed to update follow status');
       }
     } catch (err) {
@@ -127,14 +159,13 @@ export default function UserProfile() {
       {/* Profile Header */}
       <div className="bg-[var(--color-background)] border-b-2 border-[var(--color-primary)] py-8 px-4">
         <div className="max-w-4xl mx-auto flex items-center space-x-6">
-          <img
+          <Image
             src={user.profilePicUrl ? `http://localhost:3001${user.profilePicUrl}` : "/default-profile.png"}
             alt={user.username}
+            width={96}
+            height={96}
             className="w-24 h-24 rounded-full object-cover border-2 border-[var(--color-primary)]"
-            onError={(e) => {
-              const target = e.target as HTMLImageElement;
-              target.src = "/default-profile.png";
-            }}
+            unoptimized={true}
           />
           <div className="flex-1">
             <h1 className="text-3xl font-bold text-[var(--color-primary)]">{user.username}</h1>
