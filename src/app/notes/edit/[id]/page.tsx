@@ -30,7 +30,7 @@ export default function EditNotePage() {
       try {
         setLoading(true);
         const token = await user.getIdToken();
-        const response = await fetch(`http://localhost:3001/api/notes/${noteId}`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/notes/${noteId}`, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -77,7 +77,7 @@ export default function EditNotePage() {
       setSaving(true);
       const token = await user.getIdToken();
 
-      const response = await fetch(`http://localhost:3001/api/notes/${noteId}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/notes/${noteId}`, {
         method: "PATCH",
         headers: {
           Authorization: `Bearer ${token}`,

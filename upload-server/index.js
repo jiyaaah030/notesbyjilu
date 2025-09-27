@@ -18,8 +18,10 @@ const { verifyFirebaseToken } = require("./middleware/auth");
 const app = express();
 
 // Middleware setup
+const corsOrigins = process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : ["http://localhost:3000", "http://localhost:3001", "http://localhost:3003"];
+
 app.use(cors({
-  origin: ["http://localhost:3000", "http://localhost:3001", "http://localhost:3003"],
+  origin: corsOrigins,
   credentials: true
 }));
 app.use(express.json());

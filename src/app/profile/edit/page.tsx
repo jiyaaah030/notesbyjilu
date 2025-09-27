@@ -46,7 +46,7 @@ export default function EditProfilePage() {
         setLoading(true);
         const token = await user.getIdToken();
 
-        const response = await fetch("http://localhost:3001/api/users/me", {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/users/me`, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -99,7 +99,7 @@ export default function EditProfilePage() {
       const formData = new FormData();
       formData.append("avatar", file);
 
-      const response = await fetch("http://localhost:3001/api/users/me/avatar", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/users/me/avatar`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -125,7 +125,7 @@ export default function EditProfilePage() {
     try {
       const token = await user.getIdToken();
 
-      const response = await fetch("http://localhost:3001/api/users/me/avatar", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/users/me/avatar`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -157,7 +157,7 @@ export default function EditProfilePage() {
         await handleAvatarUpload(avatarFileRef.current.files[0]);
       }
 
-      const response = await fetch("http://localhost:3001/api/users/me", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/users/me`, {
         method: "PATCH",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -215,7 +215,7 @@ export default function EditProfilePage() {
             <div className="flex items-center space-x-6">
               <div className="relative w-32 h-32">
                 <Image
-                  src={avatarPreview ? `http://localhost:3001${avatarPreview}` : "/default-profile.png"}
+                  src={avatarPreview ? `${process.env.NEXT_PUBLIC_BACKEND_URL}${avatarPreview}` : "/default-profile.png"}
                   alt="Avatar Preview"
                   width={128}
                   height={128}
