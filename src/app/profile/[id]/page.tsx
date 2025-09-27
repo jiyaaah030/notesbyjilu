@@ -160,7 +160,7 @@ export default function UserProfile() {
       <div className="bg-[var(--color-background)] border-b-2 border-[var(--color-primary)] py-8 px-4">
         <div className="max-w-4xl mx-auto flex items-center space-x-6">
           <Image
-            src={user.profilePicUrl ? `${process.env.NEXT_PUBLIC_BACKEND_URL}${user.profilePicUrl}` : "/default-profile.png"}
+            src={user.profilePicUrl ? `${process.env.MONGODB_URI}${user.profilePicUrl}` : "/default-profile.png"}
             alt={user.username}
             width={96}
             height={96}
@@ -214,7 +214,7 @@ export default function UserProfile() {
                   {note.subject} - {note.semester} {note.year}
                 </p>
                 <a
-                  href={`${process.env.NEXT_PUBLIC_BACKEND_URL}/uploads/${note.filename}`}
+                  href={`${process.env.MONGODB_URI}/uploads/${note.filename}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-block bg-[var(--color-primary)] text-[var(--color-background)] px-4 py-2 rounded-full text-sm hover:bg-[var(--color-secondary)] transition"
