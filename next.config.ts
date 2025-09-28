@@ -5,12 +5,15 @@ const nextConfig: NextConfig = {
     domains: ['localhost'],
   },
   async rewrites() {
-    return [
-      {
+    const backendUrl = process.env.BACKEND_URL;
+    const rewrites = [];
+    if (backendUrl && (backendUrl.startsWith('http://') || backendUrl.startsWith('https://') || backendUrl.startsWith('/'))) {
+      rewrites.push({
         source: '/api/:path*',
-        destination: `${process.env.BACKEND_URL || 'http://localhost:3001'}/api/:path*`,
-      },
-    ];
+        destination: `${backendUrl}/api/:path*`,
+      });
+    }
+    return rewrites;
   },
 };
 
