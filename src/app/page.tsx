@@ -124,7 +124,7 @@ export default function Home() {
           Welcome to NotesbyJilu 📝
         </h1>
         <p className="text-xl md:text-2xl italic text-[var(--color-secondary)]">
-           "Sharing is caring"
+          &ldquo;Sharing is caring&rdquo;
         </p>
       </div>
 

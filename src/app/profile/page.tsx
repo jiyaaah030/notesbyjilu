@@ -45,7 +45,6 @@ export default function ProfilePage() {
   const [me, setMe] = useState<User | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'posts' | 'about'>('posts');
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
