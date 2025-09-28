@@ -5,7 +5,7 @@ import { auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 
 export default function Navbar() {
-  const { user, logout } = useAuth();
+  const { user, loading, logout } = useAuth();
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -33,7 +33,7 @@ export default function Navbar() {
 
         {/* Right links */}
         <div className="flex gap-x-6">
-          {!user ? (
+          {loading ? null : !user ? (
             <>
               <Link href="/login" className="hover:text-[var(--color-secondary)] transition-colors">Login</Link>
               <Link href="/signup" className="hover:text-[var(--color-secondary)] transition-colors font-semibold">Signup</Link>

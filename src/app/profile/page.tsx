@@ -79,7 +79,7 @@ export default function ProfilePage() {
     if (authLoading) return; // Wait for auth to load
 
     if (!user) {
-      router.push("/login");
+      setLoading(false);
       return;
     }
 
@@ -119,14 +119,14 @@ export default function ProfilePage() {
         setNotes(notesData);
       } catch (error) {
         console.error("Error fetching profile data:", error);
-        router.push("/login");
+        setMe(null);
       } finally {
         setLoading(false);
       }
     };
 
     fetchProfileData();
-  }, [user, authLoading, router]);
+  }, [user, authLoading]);
 
   const handleEditNote = (note: Note) => {
     router.push(`/notes/edit/${note._id}`);
@@ -160,6 +160,23 @@ export default function ProfilePage() {
     return (
       <div className="min-h-screen bg-[var(--color-background)] flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--color-primary)]"></div>
+      </div>
+    );
+  }
+
+  if (!user && !authLoading) {
+    return (
+      <div className="min-h-screen bg-[var(--color-background)] flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Please Login</h1>
+          <p className="text-gray-600 mb-6">You need to be logged in to view your profile.</p>
+          <Link
+            href="/login"
+            className="bg-[var(--color-primary)] text-white px-6 py-3 rounded-lg hover:opacity-90 transition-colors"
+          >
+            Login
+          </Link>
+        </div>
       </div>
     );
   }

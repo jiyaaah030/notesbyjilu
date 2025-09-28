@@ -1,4 +1,4 @@
-import { initializeApp } from "firebase/app";
+import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 // import { getAnalytics } from "firebase/analytics";
 
@@ -13,8 +13,7 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase safely
-const app = initializeApp(firebaseConfig);
-// const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
 export const provider = new GoogleAuthProvider();
 // const analytics = getAnalytics(app);
