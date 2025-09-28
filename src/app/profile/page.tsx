@@ -40,7 +40,7 @@ interface Note {
 }
 
 export default function ProfilePage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [me, setMe] = useState<User | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
@@ -76,14 +76,17 @@ export default function ProfilePage() {
   };
 
   useEffect(() => {
-    if (!user) return router.push("/login");
+    if (authLoading) return; // Wait for auth to load
+
+    if (!user) {
+      router.push("/login");
+      return;
+    }
 
     const fetchProfileData = async () => {
       try {
         setLoading(true);
         await new Promise(resolve => setTimeout(resolve, 200));
-
-        if (!user) return;
 
         const token = await user.getIdToken();
 
@@ -123,7 +126,7 @@ export default function ProfilePage() {
     };
 
     fetchProfileData();
-  }, [user, router]);
+  }, [user, authLoading, router]);
 
   const handleEditNote = (note: Note) => {
     router.push(`/notes/edit/${note._id}`);
@@ -153,7 +156,7 @@ export default function ProfilePage() {
     }
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-[var(--color-background)] flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--color-primary)]"></div>
