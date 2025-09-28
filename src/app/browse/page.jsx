@@ -14,7 +14,7 @@ export default function BrowsePage() {
 
   useEffect(() => {
     axios
-      .get(`${process.env.MONGO_URI}/api/public/notes`)
+      .get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/public/notes`)
       .then((res) => {
         setNotes(res.data);
         setFilteredNotes(res.data); // initially, show all
@@ -41,7 +41,7 @@ export default function BrowsePage() {
     try {
       const token = await user.getIdToken();
       const response = await axios.post(
-        `${process.env.MONGO_URI}/api/notes/${noteId}/like`,
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/notes/${noteId}/like`,
         {},
         {
           headers: {
@@ -69,7 +69,7 @@ export default function BrowsePage() {
     try {
       const token = await user.getIdToken();
       const response = await axios.post(
-        `${process.env.MONGO_URI}/api/notes/${noteId}/dislike`,
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/notes/${noteId}/dislike`,
         {},
         {
           headers: {
@@ -93,7 +93,7 @@ export default function BrowsePage() {
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
-      
+
       {/* 🔍 Search Bar */}
       <div className="flex justify-center mb-6">
         <input
@@ -104,7 +104,7 @@ export default function BrowsePage() {
           className="w-full max-w-md px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
         />
       </div>
-      
+
       {/* 📄 Notes List */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredNotes.length === 0 ? (
@@ -120,7 +120,7 @@ export default function BrowsePage() {
                 style={{ backgroundColor: '#190923', color: 'white' }}
                 onMouseOver={(e) => { e.target.style.backgroundColor = '#2a0f3a'; e.target.style.color = 'white'; }}
                 onMouseOut={(e) => { e.target.style.backgroundColor = '#190923'; e.target.style.color = 'white'; }}
-                href={`${process.env.MONGO_URI}/uploads/${note.filename}`}
+                href={`${process.env.NEXT_PUBLIC_BACKEND_URL}/uploads/${note.filename}`}
                 target="_blank"
                 rel="noopener noreferrer"
               >

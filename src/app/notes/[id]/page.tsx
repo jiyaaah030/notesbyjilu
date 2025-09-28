@@ -27,7 +27,7 @@ export default function NoteDetail() {
 
   useEffect(() => {
     (async () => {
-      const res = await fetch(`${process.env.MONGO_URI}/api/notes/${id}`);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/notes/${id}`);
       if (res.ok) {
         setNote(await res.json() as Note);
       }
@@ -41,7 +41,7 @@ export default function NoteDetail() {
       <div className="max-w-3xl mx-auto bg-white rounded-2xl shadow p-6">
         <h1 className="text-2xl font-bold">{note.title}</h1>
         <p className="opacity-70 mt-1">Uploaded: {new Date(note.createdAt).toLocaleString()}</p>
-        <a className="mt-4 inline-block underline" href={note.fileUrl || `${process.env.MONGO_URI}/uploads/${note.filename}`} target="_blank">Open PDF</a>
+        <a className="mt-4 inline-block underline" href={note.fileUrl || `${process.env.NEXT_PUBLIC_BACKEND_URL}/uploads/${note.filename}`} target="_blank">Open PDF</a>
       </div>
     </div>
   );

@@ -29,7 +29,7 @@ export default function Home() {
   const getProfilePicUrl = (profilePicUrl: string | null | undefined) => {
     if (!profilePicUrl) return "/profilepic.jpeg";
     if (profilePicUrl.startsWith("http")) return profilePicUrl;
-    return `${process.env.MONGO_URI}${profilePicUrl}`;
+    return `${process.env.NEXT_PUBLIC_BACKEND_URL}${profilePicUrl}`;
   };
 
   const handleSearch = async () => {
@@ -124,7 +124,7 @@ export default function Home() {
           Welcome to NotesbyJilu 📝
         </h1>
         <p className="text-xl md:text-2xl italic text-[var(--color-secondary)]">
-           &quot;Sharing is caring&quot;
+           "Sharing is caring"
         </p>
       </div>
 
@@ -172,8 +172,7 @@ export default function Home() {
   </div>
 </footer>
 
-    
+
   </>
   );
 }
- 

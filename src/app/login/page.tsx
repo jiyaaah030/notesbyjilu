@@ -1,22 +1,41 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
 import { FirebaseError } from "firebase/app";
 import { auth, provider } from "@/lib/firebase";
+import { useAuth } from "@/context/AuthContext";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.push("/profile");
+    }
+  }, [user, authLoading, router]);
+
+  if (authLoading) {
+    return (
+      <main className="flex flex-col items-center justify-center min-h-screen bg-[var(--color-background)] text-[var(--color-primary)] px-4">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--color-primary)]"></div>
+      </main>
+    );
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setIsLoggingIn(true);
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      router.push("/profile");
+      // Don't push here; let useEffect handle redirect when user state updates
     } catch (err: unknown) {
       // Provide user-friendly error messages
       const error = err as FirebaseError;
@@ -33,14 +52,17 @@ export default function LoginPage() {
       } else {
         setError("Login failed. Please check your credentials and try again.");
       }
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
   const handleGoogleSignup = async () => {
     setError("");
+    setIsLoggingIn(true);
     try {
       await signInWithPopup(auth, provider);
-      router.push("/profile");
+      // Don't push here; let useEffect handle redirect when user state updates
     } catch (err: unknown) {
       // Provide user-friendly error messages for Google sign-in
       const error = err as FirebaseError;
@@ -53,6 +75,8 @@ export default function LoginPage() {
       } else {
         setError("Google sign-in failed. Please try again.");
       }
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
@@ -69,7 +93,8 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-4 py-3 border rounded-full focus:outline-none focus:ring-2 focus:ring-[var(--color-secondary)]"
+              disabled={isLoggingIn}
+              className="w-full px-4 py-3 border rounded-full focus:outline-none focus:ring-2 focus:ring-[var(--color-secondary)] disabled:opacity-50"
             />
           </div>
           <div>
@@ -79,15 +104,17 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full px-4 py-3 border rounded-full focus:outline-none focus:ring-2 focus:ring-[var(--color-secondary)]"
+              disabled={isLoggingIn}
+              className="w-full px-4 py-3 border rounded-full focus:outline-none focus:ring-2 focus:ring-[var(--color-secondary)] disabled:opacity-50"
             />
           </div>
           {error && <p className="text-red-500 text-center">{error}</p>}
           <button
             type="submit"
-            className="w-full bg-[var(--color-primary)] text-[var(--color-background)] py-3 rounded-full hover:bg-[var(--color-secondary)] transition font-semibold"
+            disabled={isLoggingIn}
+            className="w-full bg-[var(--color-primary)] text-[var(--color-background)] py-3 rounded-full hover:bg-[var(--color-secondary)] transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Login
+            {isLoggingIn ? "Logging in..." : "Login"}
           </button>
         </form>
 
@@ -99,7 +126,8 @@ export default function LoginPage() {
         
         <button
           onClick={handleGoogleSignup}
-          className="w-full border border-[var(--color-primary)] py-3 rounded-full hover:bg-[var(--color-primary)] hover:text-[var(--color-background)] transition font-semibold flex items-center justify-center gap-2"
+          disabled={isLoggingIn}
+          className="w-full border border-[var(--color-primary)] py-3 rounded-full hover:bg-[var(--color-primary)] hover:text-[var(--color-background)] transition font-semibold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
             <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -107,7 +135,7 @@ export default function LoginPage() {
             <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
             <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
           </svg>
-          Continue with Google
+          {isLoggingIn ? "Signing in..." : "Continue with Google"}
         </button>
       </div>
     </main>

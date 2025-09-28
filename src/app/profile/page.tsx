@@ -45,6 +45,7 @@ export default function ProfilePage() {
   const [me, setMe] = useState<User | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'posts' | 'about'>('posts');
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -55,7 +56,7 @@ export default function ProfilePage() {
       const formData = new FormData();
       formData.append("avatar", e.target.files[0]);
 
-      const response = await fetch(`${process.env.BACKEND_URL}/api/users/me/avatar`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/users/me/avatar`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -91,13 +92,13 @@ export default function ProfilePage() {
         const token = await user.getIdToken();
 
         const [userResponse, notesResponse] = await Promise.all([
-          fetch(`${process.env.BACKEND_URL}/api/users/me`, {
+          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/users/me`, {
             headers: {
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
             },
           }),
-          fetch(`${process.env.BACKEND_URL}/api/users/me/notes`, {
+          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/users/me/notes`, {
             headers: {
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
@@ -138,7 +139,7 @@ export default function ProfilePage() {
 
     try {
       const token = await user.getIdToken();
-      const response = await fetch(`${process.env.BACKEND_URL}/api/notes/${noteId}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/notes/${noteId}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -191,7 +192,7 @@ export default function ProfilePage() {
         <div className="absolute -bottom-16 left-8">
           <div className="relative">
             <Image
-              src={me.profilePicUrl ? `${process.env.BACKEND_URL}${me.profilePicUrl}` : "/default-profile.png"}
+              src={me.profilePicUrl ? `${process.env.NEXT_PUBLIC_BACKEND_URL}${me.profilePicUrl}` : "/default-profile.png"}
               alt="Profile"
               width={128}
               height={128}

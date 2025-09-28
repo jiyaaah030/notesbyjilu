@@ -47,8 +47,8 @@ export default function FlashcardPage() {
 
       const limit = showAllNotes ? undefined : 3;
       const url = limit
-        ? `${process.env.MONGO_URI}/api/public/notes?limit=${limit}`
-        : `${process.env.MONGO_URI}/api/public/notes`;
+        ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/public/notes?limit=${limit}`
+        : `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/public/notes`;
 
       const response = await fetch(url, {
         headers: {
@@ -90,7 +90,7 @@ export default function FlashcardPage() {
       setGenerating(true);
       const token = await user!.getIdToken();
 
-      const response = await fetch(`${process.env.MONGO_URI}/api/flashcards/note/${selectedNote._id}/content`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/flashcards/note/${selectedNote._id}/content`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -103,7 +103,7 @@ export default function FlashcardPage() {
       const noteContent = await response.json();
 
       // Generate flashcards using AI
-      const flashcardsResponse = await fetch(`${process.env.MONGO_URI}/api/flashcards/generate`, {
+      const flashcardsResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/flashcards/generate`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -159,7 +159,7 @@ export default function FlashcardPage() {
       setAsking(true);
       const token = await user!.getIdToken();
 
-      const response = await fetch(`${process.env.MONGO_URI}/api/flashcards/ask`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/flashcards/ask`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
