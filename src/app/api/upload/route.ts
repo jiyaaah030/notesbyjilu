@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/lib/auth';
-import { put } from '@vercel/blob';
 import { User, Note } from '@/lib/models';
 import connectDB from '@/lib/mongodb';
+import fs from 'fs';
+import path from 'path';
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,21 +21,31 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: "No file uploaded" }, { status: 400 });
     }
 
-    // Upload to Vercel Blob
-    const blob = await put(file.name, file, { access: 'public' });
+    // Ensure uploads directory exists
+    const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+
+    // Save file locally with timestamp
+    const timestamp = Date.now();
+    const filename = `${timestamp}-${file.name}`;
+    const filepath = path.join(uploadsDir, filename);
+    const buffer = await file.arrayBuffer();
+    fs.writeFileSync(filepath, Buffer.from(buffer));
 
     const user = await User.findOne({ firebaseUid: decodedToken.uid });
     const uploader = user ? user.username : (decodedToken.displayName || decodedToken.email || decodedToken.uid);
 
     const newNote = new Note({
       title,
-      filename: file.name,
+      filename,
       uploader,
       uploaderUid: decodedToken.uid,
       year,
       semester,
       subject,
-      fileUrl: blob.url
+      fileUrl: `/uploads/${filename}`
     });
 
     await newNote.save();

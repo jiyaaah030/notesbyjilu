@@ -47,7 +47,7 @@ describe('Flashcard Routes', () => {
       process.env.GOOGLE_API_KEY = 'fake_key';
 
       // Mock the AI model to throw error
-      jest.mock('@google/generative-ai', () => ({
+      jest.doMock('@google/generative-ai', () => ({
         GoogleGenerativeAI: jest.fn().mockImplementation(() => ({
           getGenerativeModel: () => ({
             generateContent: () => { throw new Error('AI error'); }
@@ -55,7 +55,14 @@ describe('Flashcard Routes', () => {
         }))
       }));
 
-      const res = await request(app)
+      // Re-require the routes to use the new mock
+      jest.resetModules();
+      const flashcardRoutesMock = require('../routes/flashcardRoutes');
+      const appMock = express();
+      appMock.use(express.json());
+      appMock.use('/api/flashcards', flashcardRoutesMock);
+
+      const res = await request(appMock)
         .post('/api/flashcards/generate')
         .send({ noteContent: 'test content' });
 
@@ -63,6 +70,41 @@ describe('Flashcard Routes', () => {
       expect(res.body.error).toBe('Failed to generate flashcards from AI');
     });
 
-    // Additional tests for successful response can be added with proper mocking
+    it('should return 200 and flashcards array on success', async () => {
+      process.env.GOOGLE_API_KEY = 'valid_key';
+
+      // Mock the AI model to return success
+      jest.doMock('@google/generative-ai', () => ({
+        GoogleGenerativeAI: jest.fn().mockImplementation(() => ({
+          getGenerativeModel: () => ({
+            generateContent: jest.fn().mockResolvedValue({
+              response: {
+                text: () => JSON.stringify([
+                  { question: "What is AI?", answer: "Artificial Intelligence" },
+                  { question: "What is a flashcard?", answer: "A study aid" }
+                ])
+              }
+            })
+          })
+        }))
+      }));
+
+      // Re-require the routes to use the new mock
+      jest.resetModules();
+      const flashcardRoutesMock = require('../routes/flashcardRoutes');
+      const appMock = express();
+      appMock.use(express.json());
+      appMock.use('/api/flashcards', flashcardRoutesMock);
+
+      const res = await request(appMock)
+        .post('/api/flashcards/generate')
+        .send({ noteContent: 'This is a test note content' });
+
+      expect(res.statusCode).toBe(200);
+      expect(Array.isArray(res.body)).toBe(true);
+      expect(res.body.length).toBeGreaterThan(0);
+      expect(res.body[0]).toHaveProperty('question');
+      expect(res.body[0]).toHaveProperty('answer');
+    });
   });
 });

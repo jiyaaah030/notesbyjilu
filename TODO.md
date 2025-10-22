@@ -1,0 +1,6 @@
+- [x] Modify src/app/api/upload/route.ts to save files locally in public/uploads/ instead of using Vercel Blob
+  - Remove Vercel Blob import
+  - Add fs and path imports
+  - Ensure uploads directory exists
+  - Save file with timestamp prefix
+  - Update Note creation with new filename and fileUrl
