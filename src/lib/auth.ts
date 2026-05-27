@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { verifyFirebaseToken } from './firebase-admin';
+import { adminAuth } from './firebase-admin';
 
 export async function verifyAuth(request: NextRequest) {
   const authHeader = request.headers.get('authorization');
@@ -8,6 +8,6 @@ export async function verifyAuth(request: NextRequest) {
   }
 
   const token = authHeader.substring(7);
-  const decodedToken = await verifyFirebaseToken(token);
+  const decodedToken = await adminAuth.verifyIdToken(token);
   return decodedToken;
 }

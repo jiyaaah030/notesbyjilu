@@ -1,38 +1,33 @@
 import { getAuth } from 'firebase-admin/auth';
-import { getApps, initializeApp as initApp, cert } from 'firebase-admin/app';
-import fs from 'fs';
-import path from 'path';
+import { getApps, initializeApp, cert } from 'firebase-admin/app';
 
-if (!getApps().length) {
-  let serviceAccount;
-  try {
-    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY || '{}');
-  } catch {
-    // Fallback to reading from file
-    const filePath = path.join(process.cwd(), 'upload-server', 'firebase-service-account.json');
-    if (fs.existsSync(filePath)) {
-      const fileContent = fs.readFileSync(filePath, 'utf8');
-      serviceAccount = JSON.parse(fileContent);
-    } else {
-      throw new Error('No valid Firebase service account found');
-    }
+import type { Auth } from 'firebase-admin/auth';
+
+let adminAuth: Auth;
+
+try {
+  const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+
+  if (!serviceAccountKey) {
+    throw new Error('Missing FIREBASE_SERVICE_ACCOUNT_KEY');
   }
 
-  try {
-    initApp({
-      credential: cert(serviceAccount),
-    });
-  } catch {
-    console.warn('Failed to initialize Firebase Admin');
-    // Continue without Firebase for build purposes
-  }
+  const serviceAccount = JSON.parse(serviceAccountKey);
+
+  const app =
+    getApps().length === 0
+      ? initializeApp({
+          credential: cert(serviceAccount),
+        })
+      : getApps()[0];
+
+  adminAuth = getAuth(app);
+
+  console.log('Firebase Admin initialized successfully');
+} catch {
+  console.log(
+    'Failed to initialize Firebase Admin from FIREBASE_SERVICE_ACCOUNT_KEY'
+  );
 }
 
-export async function verifyFirebaseToken(token: string) {
-  try {
-    const decodedToken = await getAuth().verifyIdToken(token);
-    return decodedToken;
-  } catch {
-    throw new Error('Invalid or expired token');
-  }
-}
+export { adminAuth };
