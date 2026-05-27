@@ -2,14 +2,20 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   images: {
-    domains: ['localhost'],
+    remotePatterns: [
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+      },
+      {
+        protocol: 'https',
+        hostname: 'localhost',
+      },
+    ],
   },
-  webpack: (config, { isServer }) => {
-    if (isServer) {
-      config.externals.push('pdf-parse');
-    }
-    return config;
-  },
+  // Disable custom webpack externals to avoid Turbopack incompatibilities
+  webpack: undefined,
+
   async rewrites() {
     const backendUrl = process.env.BACKEND_URL;
     const rewrites = [];

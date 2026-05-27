@@ -47,14 +47,20 @@ export default function UserProfile() {
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
-        // Fetch user profile
-        const userResponse = await fetch(`/api/users/${userId}`);
+        const token = currentUser ? await currentUser.getIdToken() : undefined;
+
+        // Fetch user profile (requires auth on deployed backend)
+        const userResponse = await fetch(`/api/users/${userId}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        });
         if (!userResponse.ok) throw new Error("User not found");
         const userData = await userResponse.json() as User;
         setUser(userData);
 
         // Fetch user's notes
-        const notesResponse = await fetch(`/api/users/${userId}/notes`);
+        const notesResponse = await fetch(`/api/users/${userId}/notes`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        });
         if (notesResponse.ok) {
           const notesData = await notesResponse.json() as Note[];
           setNotes(notesData);

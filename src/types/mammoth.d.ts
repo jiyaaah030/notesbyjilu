@@ -1,16 +1,19 @@
 declare module 'mammoth' {
-  interface ExtractRawTextResult {
+  export interface ExtractRawTextResult {
     value: string;
     messages: string[];
   }
 
-  interface Mammoth {
-    extractRawText(options: {
-      buffer: Buffer;
-    }): Promise<ExtractRawTextResult>;
+  export function extractRawText(options: {
+    buffer: Buffer;
+  }): Promise<ExtractRawTextResult>;
+
+  interface MammothModule {
+    extractRawText: typeof extractRawText;
   }
 
-  const mammoth: Mammoth;
+  const mammoth: MammothModule;
 
   export default mammoth;
 }
+

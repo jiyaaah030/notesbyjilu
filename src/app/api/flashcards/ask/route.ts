@@ -5,7 +5,7 @@ import connectDB from '@/lib/mongodb';
 import OpenAI from 'openai';
 import fs from 'fs';
 import path from 'path';
-import pdfParse from 'pdf-parse';
+
 
 async function askQuestion(noteContent: string, question: string) {
   const apiKey = process.env.GROQ_API_KEY;
@@ -86,9 +86,15 @@ Provide the best educational answer possible.
 }
 
 export async function POST(request: NextRequest) {
+  // Prevent Next.js static build from failing if it tries to execute this route.
+  if (process.env.NEXT_PHASE === 'phase-production-build' || process.env.NEXT_RUNTIME === 'edge') {
+    return NextResponse.json({ error: 'Not available during build' }, { status: 503 });
+  }
+
   try {
     await verifyAuth(request);
     await connectDB();
+
 
     const { noteId, question } = await request.json();
 
@@ -119,8 +125,11 @@ export async function POST(request: NextRequest) {
     }
 
     const dataBuffer = fs.readFileSync(filePath);
+    // Lazy-load pdf-parse so it doesn't run during Next.js build-time module evaluation.
+    const { default: pdfParse } = await import('pdf-parse');
     const data = await pdfParse(dataBuffer);
     const noteContent = data.text;
+
 
     // Ask the question
     const answer = await askQuestion(noteContent, question);

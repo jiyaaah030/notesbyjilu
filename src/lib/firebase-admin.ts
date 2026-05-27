@@ -6,13 +6,49 @@ import type { Auth } from 'firebase-admin/auth';
 let adminAuth: Auth;
 
 try {
-  const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+  let serviceAccount: any | undefined;
 
-  if (!serviceAccountKey) {
-    throw new Error('Missing FIREBASE_SERVICE_ACCOUNT_KEY');
+  const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+  if (serviceAccountKey) {
+    try {
+      serviceAccount = JSON.parse(serviceAccountKey);
+    } catch {
+      // If env var is present but invalid, fall back to local JSON file.
+      serviceAccount = undefined;
+    }
   }
 
-  const serviceAccount = JSON.parse(serviceAccountKey);
+
+  // Fallback for dev/prod environments where env var is missing.
+  if (!serviceAccount) {
+    const { readFileSync, existsSync } = require('fs');
+    const path = require('path');
+
+    // Try project root first
+    const accountPath = path.join(
+      process.cwd(),
+      'upload-server',
+      'firebase-service-account.json'
+    );
+
+    // If build changes cwd, also try relative to this file
+    const fallbackPath = path.join(
+      __dirname,
+      '..',
+      '..',
+      'upload-server',
+      'firebase-service-account.json'
+    );
+
+    const finalPath = existsSync(accountPath) ? accountPath : fallbackPath;
+
+    if (!existsSync(finalPath)) {
+      throw new Error('Missing FIREBASE_SERVICE_ACCOUNT_KEY and firebase-service-account.json');
+    }
+
+    serviceAccount = JSON.parse(readFileSync(finalPath, 'utf8'));
+  }
+
 
   const app =
     getApps().length === 0
@@ -21,13 +57,23 @@ try {
         })
       : getApps()[0];
 
+
+  // Ensure we actually have an auth instance
+  if (!app) {
+    throw new Error('Failed to initialize firebase-admin app');
+  }
+
   adminAuth = getAuth(app);
 
   console.log('Firebase Admin initialized successfully');
-} catch {
+} catch (err) {
+  const msg = err instanceof Error ? err.message : String(err);
   console.log(
-    'Failed to initialize Firebase Admin from FIREBASE_SERVICE_ACCOUNT_KEY'
+    'Failed to initialize Firebase Admin. Error:',
+    msg
   );
 }
+
+
 
 export { adminAuth };

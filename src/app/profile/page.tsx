@@ -90,20 +90,22 @@ export default function ProfilePage() {
 
         const token = await user.getIdToken();
 
+        const base = window.location.origin;
         const [userResponse, notesResponse] = await Promise.all([
-          fetch(`/api/users/me`, {
+          fetch(`${base}/api/users/me`, {
             headers: {
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
             },
           }),
-          fetch(`/api/users/me/notes`, {
+          fetch(`${base}/api/users/me/notes`, {
             headers: {
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
             },
           })
         ]);
+
 
         if (!userResponse.ok || !notesResponse.ok) {
           throw new Error(`HTTP error! status: ${userResponse.status}`);
