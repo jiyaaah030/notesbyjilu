@@ -97,10 +97,12 @@ export default function FlashcardPage() {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to fetch note content");
+        const errorData = await response.json();
+        console.error("API Error Details:", errorData);
+        throw new Error(`Failed to fetch note content: ${errorData.details || errorData.error}`);
       }
 
-      const noteContent = await response.json();
+      const noteData = await response.json();
 
       // Generate flashcards using AI
       const flashcardsResponse = await fetch(`/api/flashcards/generate`, {
@@ -110,12 +112,14 @@ export default function FlashcardPage() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          noteContent: noteContent.content,
+          noteContent: noteData.content,
         }),
       });
 
       if (!flashcardsResponse.ok) {
-        throw new Error("Failed to generate flashcards");
+        const errorData = await flashcardsResponse.json().catch(() => ({}));
+        console.error("Flashcards generation API error:", errorData);
+        throw new Error(errorData.error || errorData.details || errorData.message || "Failed to generate flashcards");
       }
 
       const generatedFlashcards = await flashcardsResponse.json();

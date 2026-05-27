@@ -2,39 +2,85 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/lib/auth';
 import { Note } from '@/lib/models';
 import connectDB from '@/lib/mongodb';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import OpenAI from 'openai';
 import fs from 'fs';
 import path from 'path';
 import pdfParse from 'pdf-parse';
 
 async function askQuestion(noteContent: string, question: string) {
-  const apiKey = process.env.GOOGLE_API_KEY;
+  const apiKey = process.env.GROQ_API_KEY;
+
   if (!apiKey) {
-    throw new Error("GOOGLE_API_KEY environment variable is not set");
+    throw new Error("GROQ_API_KEY environment variable is not set");
   }
 
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+  const client = new OpenAI({
+    apiKey,
+    baseURL: 'https://api.groq.com/openai/v1',
+  });
 
-  // Truncate noteContent to avoid exceeding API limits
-  const truncatedContent = noteContent.length > 5000 ? noteContent.substring(0, 5000) + "..." : noteContent;
+  // Truncate noteContent to avoid huge prompts
+  const truncatedContent =
+    noteContent.length > 12000
+      ? noteContent.substring(0, 12000) + "..."
+      : noteContent;
 
-  const prompt = `You are an AI assistant helping students understand their notes. Based on the following note content, please answer the student's question comprehensively and accurately.
+  const prompt = `
+You are NotesByJilu AI, an intelligent educational assistant designed to help students study effectively.
 
-Note content: ${truncatedContent}
+Your role:
+- Answer academic and study-related questions clearly and accurately
+- Explain difficult concepts in simple language
+- Help students understand topics step-by-step
+- Use examples when useful
+- Prioritize information from the uploaded notes
+- If notes do not contain enough information, use your own educational knowledge to help
+- Keep responses focused on learning and education only
 
-Student's question: ${question}
+Rules:
+- Only answer study-related or educational questions
+- Refuse unrelated topics politely
+- Do not generate harmful, illegal, or inappropriate content
+- Be concise but helpful
+- Use bullet points when useful
+- Explain technical terms simply
 
-Please provide a clear answer based on the note content. If the question cannot be answered from the provided content, say so politely.`;
+UPLOADED NOTES:
+${truncatedContent}
+
+STUDENT QUESTION:
+${question}
+
+Provide the best educational answer possible.
+`;
 
   try {
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const answer = response.text().trim();
+    const completion = await client.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+
+      messages: [
+        {
+          role: 'system',
+          content:
+            'You are a helpful educational AI assistant for students.',
+        },
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+
+      temperature: 0.3,
+      max_tokens: 700,
+    });
+
+    const answer =
+      completion.choices?.[0]?.message?.content?.trim() ||
+      "No answer generated.";
 
     return answer;
   } catch (error) {
-    console.error("Error asking question with Gemini:", error);
+    console.error("Error asking question with Groq:", error);
     throw new Error("Failed to get answer from AI");
   }
 }
@@ -56,10 +102,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Note not found" }, { status: 404 });
     }
 
-    // Get the file content
-    const filePath = path.join(process.cwd(), 'public', note.fileUrl.replace(/^\//, ''));
+    // Get the file content - try public/uploads first (Next.js uploads)
+    let filePath = path.join(process.cwd(), 'public', note.fileUrl.replace(/^\//, ''));
+    console.log("Constructed file path (public):", filePath);
+
+    // If file doesn't exist in public/uploads, try upload-server/uploads (Express.js uploads)
     if (!fs.existsSync(filePath)) {
-      return NextResponse.json({ error: "Note file not found" }, { status: 404 });
+      console.log("File not found in public/uploads, trying upload-server/uploads");
+      filePath = path.join(process.cwd(), 'upload-server', note.fileUrl.replace(/^\//, ''));
+      console.log("Constructed file path (upload-server):", filePath);
+
+      if (!fs.existsSync(filePath)) {
+        console.error("File does not exist at either path:", filePath);
+        return NextResponse.json({ error: "Note file not found" }, { status: 404 });
+      }
     }
 
     const dataBuffer = fs.readFileSync(filePath);

@@ -1,61 +1,102 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/lib/auth';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import OpenAI from 'openai';
 
 async function generateFlashcards(noteContent: string) {
-  const apiKey = process.env.GOOGLE_API_KEY;
-  if (!apiKey) {
-    throw new Error("GOOGLE_API_KEY environment variable is not set");
-  }
+  const apiKey = process.env.GROQ_API_KEY;
 
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+if (!apiKey) {
+  throw new Error('GROQ_API_KEY environment variable is not set');
+}
+
+const client = new OpenAI({
+  apiKey,
+  baseURL: 'https://api.groq.com/openai/v1',
+});
 
   // Truncate noteContent to avoid exceeding API limits
-  const truncatedContent = noteContent.length > 5000 ? noteContent.substring(0, 5000) + "..." : noteContent;
+  const truncatedContent = noteContent.length > 5000 ? noteContent.substring(0, 5000) + '...' : noteContent;
 
-  const prompt = `Act as an expert educational content creator for students. Create a comprehensive set of flashcards from the provided note content. Each flashcard should be a JSON object with:
-- "question" (string): A clear, specific question that tests understanding
-- "answer" (string): A short, comprehensive answer that explains the concept thoroughly
+  const prompt = `Act as an expert educational content creator for students. Create a comprehensive set of flashcards from the provided note content. 
+                  Each flashcard should be a JSON object with:\n-
+                   \"question\" (string): A clear, specific question that tests understanding\n-
+                   \"answer\" (string): A short, comprehensive answer that explains the concept thoroughly\n\nGuidelines for creating effective flashcards:\n-
+                    Create 5-8 flashcards covering the most important concepts\n-
+                     Make questions progressively more challenging\n- 
+                     Include practical examples and applications when relevant\n- 
+                     Provide explanations in answers, not just basic facts\n- 
+                     Connect related concepts when appropriate\n-
+                     Focus on understanding rather than rote memorization\n\n
+                     Note content: ${truncatedContent}\n\n
+                     Return ONLY valid JSON in this exact format:
 
-Guidelines for creating effective flashcards:
-- Create 10-20 flashcards covering the most important concepts
-- Make questions progressively more challenging
-- Include practical examples and applications when relevant
-- Provide explanations in answers, not just basic facts
-- Connect related concepts when appropriate
-- Focus on understanding rather than rote memorization
+{
+  "flashcards": [
+    {
+      "question": "Question here",
+      "answer": "Answer here"
+    }
+  ]
+}
 
-Note content: ${truncatedContent}
-
-Return the entire set of flashcards as a single JSON array. Respond with only the JSON array and no additional text, explanation, or markdown formatting.`;
+Do not use markdown.
+Do not explain anything.`;
 
   try {
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    let text = response.text();
+    const completion = await client.chat.completions.create({
+  model: 'llama-3.3-70b-versatile',
+  messages: [
+    {
+      role: 'system',
+      content:
+        'Return ONLY valid JSON arrays. No markdown. No explanations.',
+    },
+    {
+      role: 'user',
+      content: prompt,
+    },
+  ],
+  temperature: 0.1,
+  max_tokens: 1500,
+  response_format: { type: 'json_object' },
+});
+
+    const text = completion.choices?.[0]?.message?.content ?? '';
 
     // Clean the response to remove markdown formatting
-    text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
 
     // Parse the JSON response
-    const flashcards = JSON.parse(text);
+    let flashcards;
+
+try {
+  const parsed = JSON.parse(cleaned);
+  flashcards = parsed.flashcards;
+  if (!flashcards) {
+  throw new Error("Flashcards array missing from AI response");
+}
+} catch (err) {
+  console.error("RAW AI RESPONSE:", cleaned);
+  throw new Error("AI returned invalid JSON");
+}
+
+
 
     // Validate the structure
     if (!Array.isArray(flashcards)) {
-      throw new Error("Response is not a valid JSON array");
+      throw new Error('Response is not a valid JSON array');
     }
 
     for (const card of flashcards) {
       if (typeof card !== 'object' || !card.question || !card.answer) {
-        throw new Error("Invalid flashcard structure");
+        throw new Error('Invalid flashcard structure');
       }
     }
 
     return flashcards;
   } catch (error) {
-    console.error("Error generating flashcards with Gemini:", error);
-    throw new Error("Failed to generate flashcards from AI");
+    console.error(error);
+throw error;
   }
 }
 

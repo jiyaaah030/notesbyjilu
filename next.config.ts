@@ -4,6 +4,12 @@ const nextConfig: NextConfig = {
   images: {
     domains: ['localhost'],
   },
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.externals.push('pdf-parse');
+    }
+    return config;
+  },
   async rewrites() {
     const backendUrl = process.env.BACKEND_URL;
     const rewrites = [];

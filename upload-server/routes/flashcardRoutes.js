@@ -1,4 +1,3 @@
-
 const express = require("express");
 const router = express.Router();
 const { verifyFirebaseToken } = require("../middleware/auth");
@@ -9,249 +8,232 @@ const fs = require("fs");
 const path = require("path");
 const pdfParse = require("pdf-parse");
 const mammoth = require("mammoth");
+const fetch = require("node-fetch"); // IMPORTANT FIX
 
 /**
- * Extracts text content from a file based on its URL or path.
- * @param {string} fileSource - The URL or path to the file.
- * @returns {Promise<string>} The extracted text content.
+ * Extract text from uploaded note file
  */
 async function extractTextFromFile(fileSource) {
   const ext = path.extname(fileSource).toLowerCase();
-
   let dataBuffer;
-  if (fileSource.startsWith('http')) {
-    // It's a URL, fetch it
+
+  if (fileSource.startsWith("http")) {
     const response = await fetch(fileSource);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch file from URL: ${response.statusText}`);
-    }
+    if (!response.ok) throw new Error(`Failed to fetch: ${response.statusText}`);
     dataBuffer = Buffer.from(await response.arrayBuffer());
   } else {
-    // It's a local path
     dataBuffer = fs.readFileSync(fileSource);
   }
 
-  if (ext === '.pdf') {
+  if (ext === ".pdf") {
     const data = await pdfParse(dataBuffer);
+    if (!data.text.trim()) throw new Error("No text found in PDF");
     return data.text;
-  } else if (ext === '.docx') {
-    const result = await mammoth.extractRawText({ buffer: dataBuffer });
-    return result.value;
-  } else {
-    throw new Error(`Unsupported file type: ${ext}`);
   }
+
+  if (ext === ".docx") {
+    const result = await mammoth.extractRawText({ buffer: dataBuffer });
+    if (!result.value.trim()) throw new Error("No text found in DOCX");
+    return result.value;
+  }
+
+  throw new Error(`Unsupported file type: ${ext}`);
 }
 
 /**
- * @typedef {Object} Flashcard
- * @property {string} question - The question for the flashcard
- * @property {string} answer - The answer for the flashcard
- */
-
-/**
- * Generates flashcards from the provided note content using Google's Gemini API.
- * @param {string} noteContent - The text content of the note to generate flashcards from.
- * @returns {Promise<Flashcard[]>} A promise that resolves to an array of flashcard objects.
+ * Generate flashcards using Gemini AI
  */
 async function generateFlashcards(noteContent) {
   const apiKey = process.env.GOOGLE_API_KEY;
-  if (!apiKey) {
-    throw new Error("GOOGLE_API_KEY environment variable is not set");
-  }
+  if (!apiKey) throw new Error("GOOGLE_API_KEY is missing");
 
   const genAI = new GoogleGenerativeAI(apiKey);
   const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
-  // Truncate noteContent to avoid exceeding API limits
-  const truncatedContent = noteContent.length > 5000 ? noteContent.substring(0, 5000) + "..." : noteContent;
+  const truncatedContent =
+    noteContent.length > 5000 ? noteContent.slice(0, 5000) + "..." : noteContent;
 
-  const prompt = `Act as an expert educational content creator for students. Create a comprehensive set of flashcards from the provided note content. Each flashcard should be a JSON object with:
-- "question" (string): A clear, specific question that tests understanding
-- "answer" (string): A short, comprehensive answer that explains the concept thoroughly
+  const prompt = `
+You are generating HIGH-QUALITY revision flashcards based ONLY on the provided note content.
 
-Guidelines for creating effective flashcards:
-- Create 10-20 flashcards covering the most important concepts
-- Make questions progressively more challenging
-- Include practical examples and applications when relevant
-- Provide explanations in answers, not just basic facts
-- Connect related concepts when appropriate
-- Focus on understanding rather than rote memorization
+RULES:
+- DO NOT create generic flashcards
+- Only use content from the notes
+- Create 12–18 flashcards
+- Answers must be MAX 25 words
 
-Note content: ${truncatedContent}
+FORMAT:
+[
+ { "question": "...", "answer": "..." }
+]
 
-Return the entire set of flashcards as a single JSON array. Respond with only the JSON array and no additional text, explanation, or markdown formatting.`;
+CONTENT:
+${truncatedContent}
+
+Return ONLY the JSON array.`;
 
   try {
     const result = await model.generateContent(prompt);
-    const response = await result.response;
-    let text = response.text();
+    let text = await result.response.text();
 
-    // Clean the response to remove markdown formatting
-    text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    text = text.replace(/```json|```/g, "").trim();
 
-    // Parse the JSON response
+    // Parse safely
     const flashcards = JSON.parse(text);
 
-    // Validate the structure
-    if (!Array.isArray(flashcards)) {
-      throw new Error("Response is not a valid JSON array");
-    }
+    if (!Array.isArray(flashcards)) throw new Error("AI output is not an array");
 
-    for (const card of flashcards) {
-      if (typeof card !== 'object' || !card.question || !card.answer) {
-        throw new Error("Invalid flashcard structure");
+    flashcards.forEach(card => {
+      if (!card.question || !card.answer) {
+        throw new Error("Invalid flashcard format");
       }
-    }
+    });
 
     return flashcards;
-  } catch (error) {
-    console.error("Error generating flashcards with Gemini:", error);
-    throw new Error("Failed to generate flashcards from AI");
+  } catch (err) {
+    console.error("Flashcard AI Error:", err);
+    throw new Error("Flashcard generation failed");
   }
 }
 
 /**
- * Generates an answer to a question based on the provided note content using Google's Gemini API.
- * @param {string} noteContent - The text content of the note to base the answer on.
- * @param {string} question - The user's question.
- * @returns {Promise<string>} A promise that resolves to the AI-generated answer.
+ * Generate AI Answer for a question
  */
 async function generateAnswer(noteContent, question) {
   const apiKey = process.env.GOOGLE_API_KEY;
-  if (!apiKey) {
-    throw new Error("GOOGLE_API_KEY environment variable is not set");
-  }
+  if (!apiKey) throw new Error("GOOGLE_API_KEY is missing");
 
   const genAI = new GoogleGenerativeAI(apiKey);
   const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
-  // Truncate noteContent to avoid exceeding API limits
-  const truncatedContent = noteContent.length > 4000 ? noteContent.substring(0, 4000) + "..." : noteContent;
+  const truncatedContent =
+    noteContent.length > 4000 ? noteContent.slice(0, 4000) + "..." : noteContent;
 
-  const prompt = `You are a helpful AI tutor assisting students with their academic questions. Use the provided note content as your primary knowledge base, but feel free to draw on general knowledge to provide more comprehensive and detailed explanations when helpful.
+  const prompt = `
+You are a helpful tutor. Use ONLY the provided note content.
+Explain concepts in a simple way.
 
-Note content: ${truncatedContent}
+NOTES:
+${truncatedContent}
 
-Question: ${question}
+QUESTION:
+${question}
 
-Guidelines:
-- Act as an expert mentor who answers in point to point statements and easy way
-- Provide detailed, comprehensive answers with examples when appropriate
-- Explain concepts thoroughly with step-by-step reasoning
-- If the question relates to the notes, connect your answer directly to the content
-- If the question goes beyond the notes, provide helpful context while noting the connection to the material
-- Be encouraging and supportive in your tone
-- Use clear, educational language suitable for students
-- Feel free to elaborate on related concepts that would help with understanding
-
-Respond with a detailed, helpful answer that goes beyond basic responses.`;
+ANSWER:
+`;
 
   try {
     const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const answer = response.text().trim();
-
-    return answer;
-  } catch (error) {
-    console.error("Error generating answer with Gemini:", error);
-    throw new Error("Failed to generate answer from AI");
+    return (await result.response.text()).trim();
+  } catch (err) {
+    console.error("Answer AI Error:", err);
+    throw new Error("Failed to generate answer");
   }
 }
 
-// Generate flashcards from note content
+/**
+ * ROUTES
+ */
 router.post("/generate", verifyFirebaseToken, async (req, res) => {
   try {
     const { noteContent } = req.body;
-
-    if (!noteContent || typeof noteContent !== 'string') {
-      return res.status(400).json({ error: "noteContent is required and must be a string" });
-    }
+    if (!noteContent) return res.status(400).json({ error: "noteContent missing" });
 
     const flashcards = await generateFlashcards(noteContent);
-
-    res.status(200).json(flashcards);
-  } catch (error) {
-    console.error("Error generating flashcards:", error);
-    res.status(500).json({ error: error.message || "Failed to generate flashcards" });
+    res.json(flashcards);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
-// Get note content for flashcard generation
 router.get("/note/:noteId/content", verifyFirebaseToken, async (req, res) => {
   try {
-    const { noteId } = req.params;
+    console.log("📌 Backend received noteId:", req.params.noteId); // 👈 ADD THIS HERE
 
-    // Find the note (allow any public note)
-    const note = await Note.findById(noteId);
+    const note = await Note.findById(req.params.noteId);
+    if (!note) return res.status(404).json({ error: "Note not found" });
 
-    if (!note) {
-      return res.status(404).json({ error: "Note not found" });
+    if (!note.fileUrl) {
+      console.error('Note missing fileUrl for id:', req.params.noteId);
+      return res.status(400).json({ error: 'Note has no fileUrl' });
     }
 
-    // Use the file URL to extract content
+    // Extract just the filename from fileUrl (e.g., /uploads/filename.pdf -> filename.pdf)
+    const filename = path.basename(String(note.fileUrl));
+    
+    // Resolve paths relative to project root (parent of upload-server)
+    const projectRoot = path.resolve(__dirname, "..", "..");
+    const paths = [
+      path.join(projectRoot, "public", "uploads", filename),
+      path.join(projectRoot, "upload-server", "uploads", filename),
+    ];
+
+    console.log("Looking for file at paths:", paths);
+    console.log("Exists? at public/uploads:", fs.existsSync(paths[0]));
+    console.log("Exists? at upload-server/uploads:", fs.existsSync(paths[1]));
+
     let content;
-    if (note.fileUrl) {
-      try {
-        // Extract actual content from the file URL
-        content = await extractTextFromFile(note.fileUrl);
-      } catch (extractionError) {
-        console.error("Error extracting text from file URL:", extractionError);
-        // Fallback to generic content if extraction fails
-        content = `This is sample content from "${note.title}". The file exists but text extraction failed. This note covers ${note.subject} topics for ${note.year} year, semester ${note.semester}.`;
+    for (const p of paths) {
+      if (fs.existsSync(p)) {
+        console.log("Found file at:", p);
+        content = await extractTextFromFile(p);
+        break;
       }
-    } else {
-      // No file URL, provide generic content
-      content = `This is sample content from "${note.title}" uploaded by ${note.uploader || 'another user'}. This note covers ${note.subject} topics for ${note.year} year, semester ${note.semester}. The uploaded file is not available for text extraction.`;
     }
+
+    if (!content) return res.status(404).json({ error: "File not found on server" });
 
     res.json({ content });
-  } catch (error) {
-    console.error("Error fetching note content:", error);
-    res.status(500).json({ error: "Failed to fetch note content" });
+  } catch (err) {
+    console.error("🔥 Error in content route:", err);
+    res.status(500).json({ error: err.message });
   }
 });
 
-// Ask questions about note content
+
 router.post("/ask", verifyFirebaseToken, async (req, res) => {
   try {
     const { noteId, question } = req.body;
 
     if (!noteId || !question) {
-      return res.status(400).json({ error: "noteId and question are required" });
+      return res.status(400).json({ error: "noteId and question required" });
     }
 
-    if (typeof question !== 'string' || question.trim().length === 0) {
-      return res.status(400).json({ error: "question must be a non-empty string" });
-    }
-
-    // Find the note
     const note = await Note.findById(noteId);
-    if (!note) {
-      return res.status(404).json({ error: "Note not found" });
+    if (!note) return res.status(404).json({ error: "Note not found" });
+
+    if (!note.fileUrl) {
+      return res.status(400).json({ error: "Note has no fileUrl" });
     }
 
-    // Get note content
-    let content;
-    if (note.fileUrl) {
-      try {
-        content = await extractTextFromFile(note.fileUrl);
-      } catch (extractionError) {
-        console.error("Error extracting text from file URL:", extractionError);
-        content = `This is sample content from "${note.title}". The file exists but text extraction failed. This note covers ${note.subject} topics for ${note.year} year, semester ${note.semester}.`;
+    // Extract just the filename from fileUrl
+    const filename = path.basename(String(note.fileUrl));
+    
+    // Resolve paths relative to project root
+    const projectRoot = path.resolve(__dirname, "..", "..");
+    const paths = [
+      path.join(projectRoot, "public", "uploads", filename),
+      path.join(projectRoot, "upload-server", "uploads", filename),
+    ];
+    
+    let filePath;
+    for (const p of paths) {
+      if (fs.existsSync(p)) {
+        filePath = p;
+        break;
       }
-    } else {
-      content = `This is sample content from "${note.title}" uploaded by ${note.uploader || 'another user'}. This note covers ${note.subject} topics for ${note.year} year, semester ${note.semester}. The uploaded file is not available for text extraction.`;
     }
+    
+    if (!filePath)
+      return res.status(404).json({ error: "File missing" });
 
-    // Generate answer using AI
+    const content = await extractTextFromFile(filePath);
     const answer = await generateAnswer(content, question);
 
-    res.status(200).json({ answer });
-  } catch (error) {
-    console.error("Error generating answer:", error);
-    res.status(500).json({ error: error.message || "Failed to generate answer" });
+    res.json({ answer });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
 module.exports = router;
-
