@@ -75,7 +75,7 @@ try {
   if (!flashcards) {
   throw new Error("Flashcards array missing from AI response");
 }
-} catch (_err) {
+} catch{
   console.error("RAW AI RESPONSE:", cleaned);
   throw new Error("AI returned invalid JSON");
 }
