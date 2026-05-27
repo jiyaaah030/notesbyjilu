@@ -1,8 +1,7 @@
 const admin = require("firebase-admin");
-const path = require("path");
-
-// Load service account key from local file
-const serviceAccount = require(path.join(__dirname, "../firebase-service-account.json"));
+const serviceAccount = JSON.parse(
+  process.env.FIREBASE_SERVICE_ACCOUNT_KEY
+);
 
 if (!admin.apps.length) {
   try {
