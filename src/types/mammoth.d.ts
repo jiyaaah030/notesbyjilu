@@ -1,5 +1,16 @@
 declare module 'mammoth' {
-  const mammoth: any;
+  interface ExtractRawTextResult {
+    value: string;
+    messages: string[];
+  }
+
+  interface Mammoth {
+    extractRawText(options: {
+      buffer: Buffer;
+    }): Promise<ExtractRawTextResult>;
+  }
+
+  const mammoth: Mammoth;
+
   export default mammoth;
-  export function extractRawText(options: { buffer: ArrayBuffer | Buffer | Uint8Array } | { path: string }): Promise<{ value: string; messages?: any[] }>;
 }
