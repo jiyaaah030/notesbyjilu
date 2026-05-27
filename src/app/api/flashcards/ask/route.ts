@@ -110,7 +110,10 @@ export async function POST(request: NextRequest) {
 
     // Get the file content - try public/uploads first (Next.js uploads)
     let filePath = path.join(process.cwd(), 'public', note.fileUrl.replace(/^\//, ''));
+    // Normalize to avoid accidental double slashes in serverless/edge builds
+    filePath = path.normalize(filePath);
     console.log("Constructed file path (public):", filePath);
+
 
     // If file doesn't exist in public/uploads, try upload-server/uploads (Express.js uploads)
     if (!fs.existsSync(filePath)) {
@@ -125,10 +128,28 @@ export async function POST(request: NextRequest) {
     }
 
     const dataBuffer = fs.readFileSync(filePath);
-    // Lazy-load pdf-parse so it doesn't run during Next.js build-time module evaluation.
-    const { default: pdfParse } = await import('pdf-parse');
-    const data = await pdfParse(dataBuffer);
-    const noteContent = data.text;
+    // Detect and parse file type.
+    // Most notes are PDF; DOCX is supported via Mammoth.
+    const ext = path.extname(filePath).toLowerCase();
+
+    let noteContent: string;
+
+    if (ext === '.pdf') {
+      const { default: pdfParse } = await import('pdf-parse');
+      const data = await pdfParse(dataBuffer);
+      noteContent = data.text;
+    } else if (ext === '.docx') {
+      const mammoth = await import('mammoth');
+      const extractRawText = mammoth.default?.extractRawText ?? (mammoth as any).extractRawText;
+      if (!extractRawText) {
+        return NextResponse.json({ error: 'mammoth.extractRawText not available' }, { status: 500 });
+      }
+      const result = await extractRawText({ buffer: dataBuffer });
+      noteContent = result.value;
+    } else {
+      return NextResponse.json({ error: 'Unsupported note file type' }, { status: 415 });
+    }
+
 
 
     // Ask the question
