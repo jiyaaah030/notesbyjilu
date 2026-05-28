@@ -15,6 +15,7 @@
     "@tsparticles/react": "^3.0.0",
     "@vercel/blob": "^2.0.0",
     "axios": "^1.10.0",
+    "cloudinary": "^2.10.0",
     "dotenv": "^17.2.0",
     "firebase": "^11.10.0",
     "firebase-admin": "^13.5.0",
@@ -26,7 +27,8 @@
     "openai": "^6.39.0",
     "pdf-parse": "^1.1.1",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "streamifier": "^0.1.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
@@ -35,6 +37,7 @@
     "@types/pdf-parse": "^1.1.5",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/streamifier": "^0.1.2",
     "eslint": "^9",
     "eslint-config-next": "15.3.5",
     "tailwindcss": "^4",

@@ -1,169 +1,177 @@
-📚 NotesbyJilu
+# NotesbyJilu
 
-NotesbyJilu is a collaborative note-sharing platform designed to make study materials more accessible and organized for students. It enables users to upload, browse, and engage with academic notes in a community-driven environment.
+NotesbyJilu is a collaborative note-sharing platform that lets users upload study materials and generate AI-assisted flashcards + Q&A grounded in those notes.
 
-The project focuses on simplicity, scalability, and user experience, blending a modern frontend with a secure backend for file handling and data management.
+---
 
-🚀 Key Features
+## Architecture (Production Model)
 
-Secure Authentication – User login and signup powered by Firebase Authentication.
+### 1) Frontend (Next.js)
 
-Notes Uploads – Upload and manage academic resources (PDF, DOCX, etc.).
+- Location: `src/app/*`
+- Responsibilities:
+  - Auth UI + session handling (Firebase)
+  - Upload note UI
+  - Browse/profile UI
+  - Flashcards UI and chat UI
+- The frontend calls server endpoints under `src/app/api/*`.
 
-Metadata Storage – Tracks uploader details, file information, and community interactions.
+### 2) Backend (Next.js API Routes)
 
-Community Engagement – Like/dislike system to highlight useful notes.
+- Location: `src/app/api/*`
+- Responsibilities:
+  - Auth verification (Firebase ID token)
+  - MongoDB operations (notes metadata)
+  - File persistence (uploaded note files under `public/uploads/`)
+  - AI workflows:
+    - extract note text (PDF/DOCX)
+    - generate flashcards
+    - answer questions using extracted text as context
 
-User Profiles – Customizable profile pages with editable information and profile pictures.
+### 3) Data Storage
 
-Responsive Design – Clean, aesthetic UI built with Next.js and a custom color palette.
+- MongoDB stores **metadata** for notes (not the file bytes):
+  - `title`, `filename`, `fileUrl`, `uploader`, `uploaderUid`, `year`, `semester`, `subject`, etc.
+- Files are stored on disk:
+  - `public/uploads/<filename>`
 
-Robust Backend – Node.js, Express, and Multer for efficient file handling.
+### 4) AI Subsystem (Groq/OpenAI-compatible)
 
-🛠️ Technology Stack
+- All AI logic lives in:
+  - `src/lib/ai/*`
+- Shared extraction logic:
+  - `src/lib/notes/extractNoteText.ts`
+- Endpoints:
+  - `POST /api/flashcards/generate`
+  - `POST /api/flashcards/ask`
 
-Frontend: Next.js, React, Tailwind CSS
+---
 
-Backend: Node.js, Express.js, Multer
+## Key Modules
 
-Authentication: Firebase Authentication
+### Note Text Extraction
 
-Database: MongoDB
+- File: `src/lib/notes/extractNoteText.ts`
+- Supports:
+  - **PDF**: `pdf-parse`
+  - **DOCX**: `mammoth`
+- Path resolution strategy:
+  - Prefer `note.filename`
+  - Fallback to basename of `note.fileUrl`
+  - Searches:
+    - `public/uploads/`
+    - legacy fallback `upload-server/uploads/`
 
-AI: Google Generative AI
+### Flashcard Generation
 
-Design: Custom responsive UI with consistent theming
+- File: `src/lib/ai/flashcards.ts`
+- Strategy:
+  1. Chunk note text to avoid prompt-size failures
+  2. Generate flashcards per chunk
+  3. Consolidate/deduplicate into a final set
+  4. Strong JSON normalization + validation
 
-## 🚀 Getting Started
+### Question Answering (Chatbot)
 
-### Prerequisites
+- File: `src/lib/ai/ask.ts`
+- Strategy:
+  1. Extract full note text
+  2. Truncate to a safe context length
+  3. Ask Groq/OpenAI model with strict educational prompt rules
 
-- Node.js (v18 or higher)
-- MongoDB (local or cloud instance)
-- Firebase project with Authentication enabled
-- Google Cloud project with Vertex AI enabled (for AI features)
+---
 
-### Installation
+## Request Flows (Sequence)
 
-1. **Clone the repository**
+### A) Upload Note → Persist Metadata + File
 
-   ```bash
-   git clone <repository-url>
-   cd notesbyjilu
+1. Frontend uploads a file to `src/app/api/upload/route.ts`
+2. Server:
+   - saves bytes to `public/uploads/<timestamp>-<originalName>`
+   - writes note metadata to MongoDB with `fileUrl: /uploads/<filename>`
+3. Client uses returned note id/metadata for later AI calls.
+
+### B) Generate Flashcards
+
+1. Client calls `src/app/api/flashcards/generate/route.ts`
+2. Server:
+   - verifies auth
+   - expects `noteContent` (note text) OR uses your UI/server path to supply text
+   - calls `generateFlashcardsFromNoteText()`
+3. Server returns:
+   ```json
+   { "flashcards": [{ "question": "...", "answer": "..." }] }
    ```
 
-2. **Install frontend dependencies**
+### C) Ask Question (Grounded Q&A)
 
-   ```bash
-   npm install
+1. Client calls `src/app/api/flashcards/ask/route.ts` with `{ noteId, question }`
+2. Server:
+   - verifies auth
+   - loads note from MongoDB
+   - extracts note text from the stored file via `extractNoteTextFromFile()`
+   - calls `askQuestionWithNotes()`
+3. Server returns:
+   ```json
+   { "answer": "..." }
    ```
 
-3. **Install backend dependencies**
+---
 
-   ```bash
-   cd upload-server
-   npm install
-   cd ..
-   ```
+## Production Readiness Notes
 
-4. **Set up environment variables**
+### 1) Runtime compatibility
 
-   Create `.env.local` in the root directory:
+- AI endpoints use filesystem reads (`fs` + parsing), so they must run on the **Node.js runtime**:
+  - ensured via `export const runtime = 'nodejs'`.
 
-   ```env
-   # Backend URL (for production, set to your deployed backend URL)
-   BACKEND_URL=http://localhost:3001
+### 2) Remove brittle path logic
 
-   # MongoDB connection string
-   MONGO_URI=mongodb://localhost:27017/notesdb
+- The Q&A endpoint now uses shared extraction logic (`extractNoteTextFromFile`) instead of ad-hoc path probing.
 
-   # Firebase service account key (JSON string)
-   FIREBASE_SERVICE_ACCOUNT_KEY={"type":"service_account","project_id":"..."}
+### 3) JSON reliability
 
-   # Google API key for Vertex AI
-   GOOGLE_API_KEY=your_google_api_key
-   ```
+- Flashcard generation uses:
+  - chunking
+  - strict prompt shape
+  - JSON extraction + normalization
 
-   Create `.env` in the `upload-server` directory:
+### 4) Authentication
 
-   ```env
-   # MongoDB connection string
-   MONGO_URI=mongodb://localhost:27017/notesdb
+- All AI routes call `verifyAuth(request)` from `src/lib/auth.ts`.
 
-   # Firebase service account key file path
-   FIREBASE_SERVICE_ACCOUNT_KEY_FILE=./firebase-service-account.json
+---
 
-   # Google API key for Vertex AI
-   GOOGLE_API_KEY=your_google_api_key
+## Environment Variables
 
-   # CORS origins (comma-separated)
-   CORS_ORIGINS=http://localhost:3000,http://localhost:3001
+At minimum:
 
-   # Server port
-   PORT=3001
-   ```
+- `GROQ_API_KEY`
 
-5. **Set up Firebase**
+(Also required for your app overall)
 
-   - Create a Firebase project at https://console.firebase.google.com/
-   - Enable Authentication with Email/Password provider
-   - Download the service account key JSON file and place it in `upload-server/firebase-service-account.json`
-   - Update Firebase config in `src/lib/firebase.ts` with your project credentials
+- MongoDB `MONGO_URI`
+- Firebase auth configuration used by `src/lib/auth.ts` / `src/lib/firebase.ts`
 
-6. **Set up Google Cloud Vertex AI**
+---
 
-   - Create a Google Cloud project
-   - Enable Vertex AI API
-   - Generate an API key and add it to your environment variables
+## Repository Structure (Quick)
 
-### Running the Application
+- `src/app/api/*` : Next.js server endpoints
+- `src/lib/ai/*` : AI logic
+- `src/lib/notes/*` : note parsing/extraction
+- `src/lib/*` : shared infra (auth, models, mongodb)
 
-1. **Start the backend server**
+---
 
-   ```bash
-   cd upload-server
-   npm start
-   ```
+## Conclusion
 
-   The backend will run on http://localhost:3001
+This codebase is now organized around a clean AI pipeline:
 
-2. **Start the frontend development server**
+**Mongo note metadata + disk file storage → unified text extraction → unified AI generation/ask modules → validated JSON responses**.
 
-   ```bash
-   npm run dev
-   ```
+This design reduces production failures caused by:
 
-   The frontend will run on http://localhost:3000
-
-3. **Build for production**
-   ```bash
-   npm run build
-   npm start
-   ```
-
-### Testing
-
-Run the test suite for the backend:
-
-```bash
-cd upload-server
-npm test
-```
-
-### Deployment
-
-The application is configured for deployment on Vercel (frontend) and any Node.js hosting service (backend).
-
-For Vercel deployment:
-
-- Set the environment variables in your Vercel project settings
-- The build command is `npm run build`
-- The start command is `npm start`
-
-🎯 Vision
-
-NotesbyJilu aims to become a student-first knowledge hub, reducing barriers to quality resources and encouraging peer-to-peer learning. The platform is built with scalability in mind, allowing future enhancements like AI-powered note recommendations, study communities, and gamified engagement.
-
-📄 License
-
-Licensed under the MIT License. Free to use, adapt, and contribute.
+- inconsistent file path resolution
+- edge/runtime incompatibility
+- brittle JSON parsing

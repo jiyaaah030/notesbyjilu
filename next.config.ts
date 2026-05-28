@@ -13,20 +13,8 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // Disable custom webpack externals to avoid Turbopack incompatibilities
-  webpack: undefined,
 
-  async rewrites() {
-    const backendUrl = process.env.BACKEND_URL;
-    const rewrites = [];
-    if (backendUrl && (backendUrl.startsWith('http://') || backendUrl.startsWith('https://') || backendUrl.startsWith('/'))) {
-      rewrites.push({
-        source: '/api/:path*',
-        destination: `${backendUrl}/api/:path*`,
-      });
-    }
-    return rewrites;
-  },
+  webpack: undefined,
 };
 
 export default nextConfig;

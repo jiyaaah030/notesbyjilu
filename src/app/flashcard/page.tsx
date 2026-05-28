@@ -176,10 +176,13 @@ export default function FlashcardPage() {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to get answer");
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Ask API error payload:", errorData);
+        throw new Error(errorData.error || errorData.details || "Failed to get answer");
       }
 
       const data = await response.json();
+
       const newQA: QAAssistant = {
         question: currentQuestion,
         answer: data.answer,
